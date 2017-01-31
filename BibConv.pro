@@ -1,0 +1,28 @@
+#-------------------------------------------------
+#
+# Project created by QtCreator 2014-04-01T09:23:40
+#
+#-------------------------------------------------
+
+QT += core \
+    gui \
+    widgets \
+#    network \
+    sql \
+#    qml \
+#    quick \
+#    printsupport \
+#    multimedia
+
+TARGET = BibConv
+TEMPLATE = app
+
+
+SOURCES += main.cpp\
+        bibconv.cpp \
+    bible.cpp
+
+HEADERS  += bibconv.h \
+    bible.h
+
+FORMS    += bibconv.ui
