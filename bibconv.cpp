@@ -32,7 +32,91 @@ void BibConv::on_pushButtonStart_clicked()
 
 void BibConv::importBibleDatabase()
 {
+    QString pathToTxt = QFileDialog::getOpenFileName(this,tr("Open Bible"), "", tr("txt Files (*.txt)"));
+    QString pathToHtml = QFileDialog::getOpenFileName(this,tr("Open Open Headers"), "", tr("Html Files (*.html *.htm)"));
 
+    ui->plainTextEdit->appendPlainText(pathToTxt);
+    ui->plainTextEdit->appendPlainText(pathToHtml);
+
+    // Get bible names
+    QFile file(pathToHtml);
+    if(!file.open(QIODevice::ReadOnly))
+    {
+        QMessageBox(QMessageBox::Warning,"Error","Error Opening File").exec();
+        return;
+    }
+
+    Bible bible;
+    Book book;
+    QString line, convBible;
+    int bkId(0);
+
+    bool bookStart = false;
+
+    while (!file.atEnd())
+    {
+        line = file.readLine();
+        if(line.startsWith("<title"))
+        {
+            bible.name = line.trimmed();
+        }
+
+        if(line.startsWith("<block"))
+        {
+            bookStart = true;
+        }
+        if(line.startsWith("</block"))
+        {
+            bookStart = false;
+        }
+
+        convBible = "##spDataVersion:\t1";
+        convBible += "\n##Title:\t" + bible.name;
+        convBible += "\n##Abbreviation:\t" + bible.abbr;
+        convBible += "\n##Information:\t" + bible.copyright;
+        convBible += "\n##RightToLeft:\t0";// + bible.chapterDelim.trimmed() + "\t" + bible.verseDelim.trimmed();
+
+        if(bookStart)
+        {
+            if(!line.startsWith("[<a") && line != "" && (!line.startsWith("<b")))
+            {
+                ++bkId;
+                book.name = line.trimmed();
+                book.bookId = bkId;
+                bible.addBook(book);
+
+//                ui->plainTextEdit->appendPlainText(QString::number(book.bookId) + " " + book.name);
+                convBible += QString::number(book.bookId) + "\t" + book.name;
+            }
+        }
+    }
+    file.close();
+
+    convBible += "\n-----";
+
+   // Get Bible text
+    file.setFileName(pathToTxt);
+    if(!file.open(QIODevice::ReadOnly))
+    {
+        QMessageBox(QMessageBox::Warning,"Error","Error Opening File").exec();
+        return;
+    }
+    ui->progressBar->setMaximum(66);
+    while(!file.atEnd())
+    {
+        line = file.readLine().trimmed();
+        QStringList list;
+        list = line.split("\t");
+        QString v = list.at(4);
+        v = v.remove("&para;");
+        QString bCode = "B" + get3(list.at(1).toInt()) + "C" + get3(list.at(2).toInt()) + "V" + get3(list.at(3).toInt());
+        convBible += bCode + "\t" + list.at(1) + "\t" + list.at(2) + "\t" + list.at(3) + "\t" + v.trimmed() + "\n";
+        ui->progressBar->setValue(list.at(1).toInt());
+    }
+    file.close();
+
+
+    ui->plainTextEdit->appendPlainText(convBible);
 }
 
 void BibConv::importBibleQuote()

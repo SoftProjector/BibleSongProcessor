@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QDir>
+#include <QFileDialog>
 #include <QtSql>
 #include "bible.h"
 
