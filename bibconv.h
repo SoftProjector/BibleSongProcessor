@@ -12,6 +12,17 @@ namespace Ui {
 class BibConv;
 }
 
+enum BibleConvType
+{
+    MY_SWORD,
+    BIBLE_QUOTE,
+    BIBLE_DATABASE,
+    ZAFENIA_XML,
+    CORPUS_XML,
+    OSIS_XML,
+    CSB_XML
+};
+
 class BibConv : public QMainWindow
 {
     Q_OBJECT
@@ -35,10 +46,11 @@ private slots:
 //    QString processBookWBTC(QString dirPath, Book book, QString cDelim, QString vDelim);
     QString processBookRBO2011(QString dirPath, Book book, QString cDelim, QString vDelim);
     void toSingleLine(QString &sline);
-
+    void importXml(QString fileName);
 
 private:
     Ui::BibConv *ui;
+    int bConType;
 };
 
 #endif // BIBCONV_H

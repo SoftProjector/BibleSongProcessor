@@ -12,7 +12,10 @@ void Bible::addBook(Book book)
 
 Book::Book()
 {
-
+    name = "";
+    filePath = "";
+    chapterCount = 0;
+    bookId = 0;
 }
 
 void Book::setBookId(QString fp)
