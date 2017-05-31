@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QtSql>
+#include <QDomDocument>
 #include "bible.h"
 
 namespace Ui {
@@ -47,10 +48,18 @@ private slots:
     QString processBookRBO2011(QString dirPath, Book book, QString cDelim, QString vDelim);
     void toSingleLine(QString &sline);
     void importXml(QString fileName);
+    void importOsisXml(QString fileName);
+    void updateOsisBibleName(QString &bName, int &bNum);
+    QString printBible(Bible &bible);
+
+    void on_comboBox_activated(int index);
+
+    void on_pushButtonSave_clicked();
 
 private:
     Ui::BibConv *ui;
     int bConType;
+    QString bibleTitle;
 };
 
 #endif // BIBCONV_H

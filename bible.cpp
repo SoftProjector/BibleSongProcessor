@@ -1,13 +1,19 @@
 #include "bible.h"
 
-Bible::Bible()
+Verse::Verse()
 {
-    copyright = "Imported from BibleQuote Module";
+    num = 0;
+    text = "";
 }
 
-void Bible::addBook(Book book)
+Chapter::Chapter()
 {
-    books.append(book);
+    num = 0;
+}
+
+void Chapter::addVerse(Verse v)
+{
+    verses.append(v);
 }
 
 Book::Book()
@@ -24,3 +30,19 @@ void Book::setBookId(QString fp)
     fp = fp.remove(QRegExp("\\D"));
     bookId = fp.toInt();
 }
+
+void Book::addChapter(Chapter c)
+{
+    chapters.append(c);
+}
+
+Bible::Bible()
+{
+    copyright = "Imported from BibleQuote Module";
+}
+
+void Bible::addBook(Book book)
+{
+    books.append(book);
+}
+

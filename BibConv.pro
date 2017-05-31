@@ -7,6 +7,7 @@
 QT += core \
     gui \
     widgets \
+    xml \
 #    network \
     sql \
 #    qml \

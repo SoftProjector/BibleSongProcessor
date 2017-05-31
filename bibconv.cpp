@@ -15,10 +15,11 @@ BibConv::~BibConv()
     delete ui;
 }
 
-void BibConv::on_pushButtonStart_clicked()
+void BibConv::on_comboBox_activated(int index)
 {
-    bConType = ui->comboBox->currentIndex();
     QString fn = "";
+
+    bConType = index;
 
     switch (bConType) {
     case ZAFENIA_XML:
@@ -38,7 +39,10 @@ void BibConv::on_pushButtonStart_clicked()
     default:
         break;
     }
+}
 
+void BibConv::on_pushButtonStart_clicked()
+{
     switch (bConType) {
     case MY_SWORD:
         importMySword();
@@ -50,11 +54,13 @@ void BibConv::on_pushButtonStart_clicked()
         importBibleDatabase();
         break;
     case ZAFENIA_XML:
-        importXml(fn);
+        importXml(ui->lineEdit->text());
         break;
     case CORPUS_XML:
+
         break;
     case OSIS_XML:
+         importOsisXml(ui->lineEdit->text());
         break;
     case CSB_XML:
         break;
@@ -577,6 +583,648 @@ void BibConv::importXml(QString fileName)
     ui->progressBar->setValue(ct);
 }
 
+void BibConv::importOsisXml(QString fileName)
+{
+    QDomDocument domDoc;
+    QFile file (fileName);
+    QString oline,bb,b,c,v,vt,bO,cO,bbO,abbr,l,lo;
+    bO="x";
+    QString out,books,info;
+    Bible bible;
+
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Can't open file: " << fileName;
+        ui->lineEdit->setText("Can't open file: " + fileName);
+        return;
+    }
+
+
+    if(!domDoc.setContent(&file,false))
+    {
+        ui->lineEdit->setText("Error XML DOM Document open");
+        file.close();
+        return;
+    }
+    file.close();
+
+//    xmlreader.setDevice(&file);
+
+    int xc(0), ct(0);
+    ui->progressBar->setMaximum(272000);
+
+    QDomElement domElem = domDoc.documentElement();
+    QDomNode n = domElem.firstChild();
+
+    while(!n.isNull())
+    {
+        if("osisText" == n.nodeName())
+        {
+            QDomNode nOT = n.firstChild();
+            while(!nOT.isNull())
+            {
+                if("header" == nOT.nodeName())
+                {
+                    QDomNode nh = nOT.firstChild();
+                    bool firstWork = true;
+                    while (!nh.isNull())
+                    {
+                        if("work" == nh.nodeName() && firstWork)
+                        {
+                            firstWork = false;
+                            QDomElement ew = nh.toElement();
+                            bible.abbr = ew.attribute("osisWork");
+
+                            QDomNode nw = nh.firstChild();
+                            while (!nw.isNull())
+                            {
+                                if("title" == nw.nodeName())
+                                {
+                                    bible.name = nw.toElement().text();
+                                }
+                                ++ct;
+                                ui->progressBar->setValue(ct);
+                                nw = nw.nextSibling();
+                            }
+                        }
+
+                        ++ct;
+                        ui->progressBar->setValue(ct);
+                        nh = nh.nextSibling();
+                    }
+                }
+                else if("div" == nOT.nodeName() && "x-testament" == nOT.toElement().attribute("type"))
+                {
+                    QDomNode nt = nOT.firstChild();
+                    int bkNum = 0;
+
+                    while (!nt.isNull())
+                    {
+                        if("div" == nt.nodeName() &&  "book" == nt.toElement().attribute("type"))
+                        {
+                            Book book;
+                            book.name = nt.toElement().attribute("osisID");
+                            updateOsisBibleName(book.name,book.bookId);
+
+                            QDomNode nc = nt.firstChild();
+
+                            while (!nc.isNull())
+                            {
+                                if("chapter" == nc.nodeName())
+                                {
+                                    Chapter chap;
+                                    QString cid = nc.toElement().attribute("osisID");
+                                    QStringList cidlist = cid.split(".");
+                                    chap.num = cidlist.at(cidlist.count()-1).toInt();
+
+                                    QDomNode nv = nc.firstChild();
+
+                                    while (!nv.isNull())
+                                    {
+                                        if("verse" == nv.nodeName())
+                                        {
+                                            for(int icn(0);icn<nv.childNodes().count();++icn)
+                                            {
+                                                QDomNode nvc = nv.childNodes().at(icn);
+                                                if("title"==nvc.nodeName() ||
+                                                        "milestone"==nvc.nodeName() ||
+                                                        "reference"==nvc.nodeName() ||
+                                                        "note"==nvc.nodeName())
+                                                {
+                                                  nv.removeChild(nv.childNodes().at(icn));
+                                                }
+
+                                                ++ct;
+                                                ui->progressBar->setValue(ct);
+                                            }
+
+                                            // Run delete child nodes again. first loop sometimes leaves child nodes undeleted.
+                                            for(int icn(0);icn<nv.childNodes().count();++icn)
+                                            {
+                                                QDomNode nvc = nv.childNodes().at(icn);
+                                                if("title"==nvc.nodeName() ||
+                                                        "milestone"==nvc.nodeName() ||
+                                                        "reference"==nvc.nodeName() ||
+                                                        "note"==nvc.nodeName())
+                                                {
+                                                  nv.removeChild(nv.childNodes().at(icn));
+                                                }
+                                            }
+
+                                            Verse v;
+                                            QString vid = nv.toElement().attribute("osisID");
+                                            QStringList vidlist = vid.split(".");
+                                            v.num = vidlist.at(vidlist.count()-1).toInt();
+                                            v.text = nv.toElement().text();
+                                            chap.addVerse(v);
+                                        }
+
+                                        ++ct;
+                                        ui->progressBar->setValue(ct);
+                                        nv = nv.nextSibling();
+                                    }
+
+                                    ++book.chapterCount;
+                                    book.addChapter(chap);
+                                }
+                                ++ct;
+                                ui->progressBar->setValue(ct);
+                                nc = nc.nextSibling();
+                            }
+
+                            bible.addBook(book);
+                        }
+                        ++ct;
+                        ui->progressBar->setValue(ct);
+                        nt = nt.nextSibling();
+                    }
+                }
+                ++ct;
+                ui->progressBar->setValue(ct);
+                nOT = nOT.nextSibling();
+            }
+        }
+        ++ct;
+        ui->progressBar->setValue(ct);
+        n = n.nextSibling();
+    }
+
+   ui->plainTextEdit->setPlainText(printBible(bible));
+   ui->progressBar->setValue(ui->progressBar->maximum());
+    //    btext = out;
+//    ui->progressBar->setValue(ct);
+}
+
+void BibConv::updateOsisBibleName(QString &bName, int &bNum)
+{
+    if("Gen" == bName)
+    {
+        bName = "Genesis";
+        bNum = 1;
+    }
+    else if("Exod" == bName)
+    {
+        bName = "Exodus";
+        bNum = 2;
+    }
+    else if("Lev" == bName)
+    {
+        bName = "Leviticus";
+        bNum = 3;
+    }
+    else if("Num" == bName)
+    {
+        bName = "Numbers";
+        bNum = 4;
+    }
+    else if("Deut" == bName)
+    {
+        bName = "Deuteronomy";
+        bNum = 5;
+    }
+    else if("Josh" == bName)
+    {
+        bName = "Joshua";
+        bNum = 6;
+    }
+    else if("Judg" == bName)
+    {
+        bName = "Judges";
+        bNum = 7;
+    }
+    else if("Ruth" == bName)
+    {
+        bName = "Ruth";
+        bNum = 8;
+    }
+    else if("1Sam" == bName)
+    {
+        bName = "1 Samuel";
+        bNum = 9;
+    }
+    else if("2Sam" == bName)
+    {
+        bName = "2 Samuel";
+        bNum = 10;
+    }
+    else if("1Kgs" == bName)
+    {
+        bName = "1 Kings";
+        bNum = 11;
+    }
+    else if("2Kgs" == bName)
+    {
+        bName = "2 Kings";
+        bNum = 12;
+    }
+    else if("1Chr" == bName)
+    {
+        bName = "1 Chronicles";
+        bNum = 13;
+    }
+    else if("2Chr" == bName)
+    {
+        bName = "2 Chronicles";
+        bNum = 14;
+    }
+    else if("Ezra" == bName)
+    {
+        bName = "Ezra";
+        bNum = 15;
+    }
+    else if("Neh" == bName)
+    {
+        bName = "Nehemiah";
+        bNum = 16;
+    }
+    else if("Esth" == bName)
+    {
+        bName = "Esther";
+        bNum = 17;
+    }
+    else if("Job" == bName)
+    {
+        bName = "Job";
+        bNum = 18;
+    }
+    else if("Ps" == bName)
+    {
+        bName = "Psalms";
+        bNum = 19;
+    }
+    else if("Prov" == bName)
+    {
+        bName = "Proverbs";
+        bNum = 20;
+    }
+    else if("Eccl" == bName)
+    {
+        bName = "Ecclesiastes";
+        bNum = 21;
+    }
+    else if("Song" == bName)
+    {
+        bName = "Song of Solomon";
+        bNum = 22;
+    }
+    else if("Isa" == bName)
+    {
+        bName = "Isaiah";
+        bNum = 23;
+    }
+    else if("Jer" == bName)
+    {
+        bName = "Jeremiah";
+        bNum =24;
+    }
+    else if("Lam" == bName)
+    {
+        bName = "Lamentations";
+        bNum = 25;
+    }
+    else if("Ezek" == bName)
+    {
+        bName = "Ezekiel";
+        bNum = 26;
+    }
+    else if("Dan" == bName)
+    {
+        bName = "Daniel";
+        bNum = 27;
+    }
+    else if("Hos" == bName)
+    {
+        bName = "Hosea";
+        bNum = 28;
+    }
+    else if("Joel" == bName)
+    {
+        bName = "Joel";
+        bNum = 29;
+    }
+    else if("Amos" == bName)
+    {
+        bName = "Amos";
+        bNum = 30;
+    }
+    else if("Obad" == bName)
+    {
+        bName = "Obadiah";
+        bNum = 31;
+    }
+    else if("Jonah" == bName)
+    {
+        bName = "Jonah";
+        bNum = 32;
+    }
+    else if("Mic" == bName)
+    {
+        bName = "Micah";
+        bNum = 33;
+    }
+    else if("Nah" == bName)
+    {
+        bName = "Nahum";
+        bNum = 34;
+    }
+    else if("Hab" == bName)
+    {
+        bName = "Habakkuk";
+        bNum = 35;
+    }
+    else if("Zeph" == bName)
+    {
+        bName = "Zephaniah";
+        bNum = 36;
+    }
+    else if("Hag" == bName)
+    {
+        bName = "Haggai";
+        bNum = 37;
+    }
+    else if("Zech" == bName)
+    {
+        bName = "Zechariah";
+        bNum = 38;
+    }
+    else if("Mal" == bName)
+    {
+        bName = "Malachi";
+        bNum = 39;
+    }
+    else if("Matt" == bName)
+    {
+        bName = "Matthew";
+        bNum = 40;
+    }
+    else if("Mark" == bName)
+    {
+        bName = "Mark";
+        bNum = 41;
+    }
+    else if("Luke" == bName)
+    {
+        bName = "Luke";
+        bNum = 42;
+    }
+    else if("John" == bName)
+    {
+        bName = "John";
+        bNum = 43;
+    }
+    else if("Acts" == bName)
+    {
+        bName = "Acts";
+        bNum = 44;
+    }
+    else if("Rom" == bName)
+    {
+        bName = "Romans";
+        bNum = 45;
+    }
+    else if("1Cor" == bName)
+    {
+        bName = "1 Corinthians";
+        bNum = 46;
+    }
+    else if("2Cor" == bName)
+    {
+        bName = "2 Corinthians";
+        bNum = 47;
+    }
+    else if("Gal" == bName)
+    {
+        bName = "Galatians";
+        bNum = 48;
+    }
+    else if("Eph" == bName)
+    {
+        bName = "Ephesians";
+        bNum = 49;
+    }
+    else if("Phil" == bName)
+    {
+        bName = "Philippians";
+        bNum = 50;
+    }
+    else if("Col" == bName)
+    {
+        bName = "Colossians";
+        bNum = 51;
+    }
+    else if("1Thess" == bName)
+    {
+        bName = "1 Thessalonians";
+        bNum = 52;
+    }
+    else if("2Thess" == bName)
+    {
+        bName = "2 Thessalonians";
+        bNum = 53;
+    }
+    else if("1Tim" == bName)
+    {
+        bName = "1 Timothy";
+        bNum = 54;
+    }
+    else if("2Tim" == bName)
+    {
+        bName = "2 Timothy";
+        bNum = 55;
+    }
+    else if("Titus" == bName)
+    {
+        bName = "Titus";
+        bNum = 56;
+    }
+    else if("Phlm" == bName)
+    {
+        bName = "Philemon";
+        bNum = 57;
+    }
+    else if("Heb" == bName)
+    {
+        bName = "Hebrews";
+        bNum = 58;
+    }
+    else if("Jas" == bName)
+    {
+        bName = "James";
+        bNum = 59;
+    }
+    else if("1Pet" == bName)
+    {
+        bName = "1 Peter";
+        bNum = 60;
+    }
+    else if("2Pet" == bName)
+    {
+        bName = "2 Peter";
+        bNum = 61;
+    }
+    else if("1John" == bName)
+    {
+        bName = "1 John";
+        bNum = 62;
+    }
+    else if("2John" == bName)
+    {
+        bName = "2 John";
+        bNum = 63;
+    }
+    else if("3John" == bName)
+    {
+        bName = "3 John";
+        bNum = 64;
+    }
+    else if("Jude" == bName)
+    {
+        bName = "Jude";
+        bNum = 65;
+    }
+    else if("Rev" == bName)
+    {
+        bName = "Revelation";
+        bNum = 66;
+    }
+    else if("Tob" == bName)
+    {
+        bName = "Tobit";
+        bNum = 67;
+    }
+    else if("Jdt" == bName)
+    {
+        bName = "Judith";
+        bNum = 68;
+    }
+    else if("Estg" == bName)
+    {
+        bName = "Esther-Greek";
+        bNum = 69;
+    }
+    else if("Wis" == bName)
+    {
+        bName = "Wisdom";
+        bNum = 70;
+    }
+    else if("Sir" == bName)
+    {
+        bName = "Sirach";
+        bNum = 71;
+    }
+    else if("Bar" == bName)
+    {
+        bName = "Baruch";
+        bNum = 72;
+    }
+    else if("EpJer" == bName)
+    {
+        bName = "Epistle of Jeremiah";
+        bNum = 73;
+    }
+    else if("PrAza" == bName)
+    {
+        bName = "Prayer of Azariah";
+        bNum = 74;
+    }
+    else if("Sus" == bName)
+    {
+        bName = "Susanna";
+        bNum = 75;
+    }
+    else if("BelDr" == bName)
+    {
+        bName = "Bel and the Dragon";
+        bNum = 76;
+    }
+    else if("1Macc" == bName)
+    {
+        bName = "1 Maccabees";
+        bNum = 77;
+    }
+    else if("2Macc" == bName)
+    {
+        bName = "2 Maccabees";
+        bNum = 78;
+    }
+    else if("3Macc" == bName)
+    {
+        bName = "3 Maccabees";
+        bNum = 79;
+    }
+    else if("na" == bName)
+    {
+        bName = "na";
+        bNum = 80;
+    }
+    else if("1Esd" == bName)
+    {
+        bName = "1 Esdras";
+        bNum = 81;
+    }
+    else if("2Esd" == bName)
+    {
+        bName = "2 Esdras";
+        bNum = 82;
+    }
+    else if("PrMan" == bName)
+    {
+        bName = "Prayer of Manasses";
+        bNum = 83;
+    }
+}
+
+QString BibConv::printBible(Bible &bible)
+{
+    bibleTitle = bible.name;
+    QString bText = "";
+    QString books = "";
+    QString verses = "";
+    QString info = "##spDataVersion:\t1";
+    info += "\n##Title:\t" + bible.name;
+    info += "\n##Abbreviation:\t" + bible.abbr;
+    info += "\n##Information:\t" + bible.copyright;
+    info += "\n##RightToLeft:\t";
+    for(int ib(0);ib<bible.books.count();++ib)
+    {
+        Book b = bible.books.at(ib);
+        bool hasVerses = false;
+        for(int ic(0);ic<b.chapters.count();++ic)
+        {
+            Chapter c = b.chapters.at(ic);
+            for(int iv(0);iv<c.verses.count();++iv)
+            {
+                Verse v = c.verses.at(iv);
+                if(!v.text.isEmpty())
+                {
+                    hasVerses = true;
+                    verses += "\nB" + get3(b.bookId) + "C" + get3(c.num) + "V" + get3(v.num) +
+                            "\t" + QString::number(b.bookId) +
+                            "\t" + QString::number(c.num) +
+                            "\t" + QString::number(v.num) +
+                            "\t" + v.text;
+                }
+                else
+                {
+//                    qDebug()<<"Empty Verse: B" << get3(b.bookId) << "C" << get3(c.num) << "V" << get3(v.num);
+                }
+
+            }
+        }
+        if(hasVerses)
+        {
+            books += "\n" + QString::number(b.bookId) + "\t" + b.name + "\t" + QString::number(b.chapterCount);
+        }
+        else
+        {
+            qDebug()<<b.name<<" - Does not have any text";
+        }
+    }
+    bText = info + books + "\n-----" + verses;
+    return bText;
+}
+
 QString BibConv::processLineMySword(QString line, QString &book)
 {
     QRegExp rx;
@@ -732,4 +1380,27 @@ void BibConv::toSingleLine(QString &sline)
         sline += "@%" + line_list[i];
 
     sline = sline.trimmed();
+}
+
+void BibConv::on_pushButtonSave_clicked()
+{
+    QString file_path = QFileDialog::getSaveFileName(this,tr("Save exported Bible as:"),
+                                                     bibleTitle,
+                                                     tr("SoftProjector Bible file ") + "(*.spb)");
+    if(!file_path.isEmpty())
+    {
+        if(!file_path.endsWith(".spb"))
+        {
+            file_path = file_path + ".spb";
+        }
+        QFile ofile;
+        ofile.setFileName(file_path);
+        if (ofile.open(QIODevice::WriteOnly))
+        {
+            QTextStream out(&ofile);
+            out.setCodec("UTF8");
+            out << ui->plainTextEdit->toPlainText();
+        }
+        ofile.close();
+    }
 }
