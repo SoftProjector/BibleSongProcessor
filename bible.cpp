@@ -38,7 +38,18 @@ void Book::addChapter(Chapter c)
 
 Bible::Bible()
 {
-    copyright = "Imported from BibleQuote Module";
+    copyright =  "Bible Copyright and Permissions Information @%@%The Holy Bible@%Copyright (c) Eternity, God@%All rights reserved.@%"
+                "Copyright Options@%@%"
+                "Option A: If you think the bible is:@%"
+                "    1. the work of men, translators, publishers and nothing to do with Holy Spirit OR@%"
+                "    2. acknowledge Holy Spirit being the original author but the original author is dead and 70+ years had passed.@%"
+                "    - Then you must abide by what the translators, publishers etc say about their work.@%@%"
+                "Option B: If you think the bible is:@%"
+                "    1.the work of Holy Spirit through His people OR@%"
+                "    2.acknowledge Holy Spirit being the original author and He is still living OR@%"
+                "    3.acknowledge that you have Holy Spirit within you.@%"
+                "    - Then you must abide by what the Holy Spirit within you says as He is the original author and copyright holder of all Bibles.@%@%"
+                "SoftProjector assumes that you agree with Option B.";
 }
 
 void Bible::addBook(Book book)

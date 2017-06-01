@@ -587,10 +587,10 @@ void BibConv::importOsisXml(QString fileName)
 {
     QDomDocument domDoc;
     QFile file (fileName);
-    QString oline,bb,b,c,v,vt,bO,cO,bbO,abbr,l,lo;
-    bO="x";
-    QString out,books,info;
+
+    QString info = "Imported from OSIS XML / The SWORD Poject file from http://www.crosswire.org/@%--------------------------@%";
     Bible bible;
+    bible.copyright = info + bible.copyright;
 
 
     if (!file.open(QIODevice::ReadOnly))
