@@ -49,7 +49,8 @@ private slots:
     void toSingleLine(QString &sline);
     void importXml(QString fileName);
     void importOsisXml(QString fileName);
-    void updateOsisBibleName(QString &bName, int &bNum);
+    void importCorpusXml(QString fileName);
+    void updateBookName(QString &bName, int &bNum);
     QString printBible(Bible &bible);
 
     void on_comboBox_activated(int index);

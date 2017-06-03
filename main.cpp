@@ -35,14 +35,14 @@ int main(int argc, char *argv[])
     BibConv w;
     w.show();
     // Try to connect to database
-    if( !dbconnect() )
-    {
-        QMessageBox mb;
-        mb.setText("Failed to connect to database 'spData.sqlite'");
-        mb.setWindowTitle("Database File Error");
-        mb.setIcon(QMessageBox::Critical);
-        mb.exec();
-        return 1;
-    }
+//    if( !dbconnect() )
+//    {
+//        QMessageBox mb;
+//        mb.setText("Failed to connect to database 'spData.sqlite'");
+//        mb.setWindowTitle("Database File Error");
+//        mb.setIcon(QMessageBox::Critical);
+//        mb.exec();
+//        return 1;
+//    }
     return a.exec();
 }

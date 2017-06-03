@@ -57,7 +57,7 @@ void BibConv::on_pushButtonStart_clicked()
         importXml(ui->lineEdit->text());
         break;
     case CORPUS_XML:
-
+        importCorpusXml(ui->lineEdit->text());
         break;
     case OSIS_XML:
          importOsisXml(ui->lineEdit->text());
@@ -609,8 +609,6 @@ void BibConv::importOsisXml(QString fileName)
     }
     file.close();
 
-//    xmlreader.setDevice(&file);
-
     int xc(0), ct(0);
     ui->progressBar->setMaximum(272000);
 
@@ -665,7 +663,7 @@ void BibConv::importOsisXml(QString fileName)
                         {
                             Book book;
                             book.name = nt.toElement().attribute("osisID");
-                            updateOsisBibleName(book.name,book.bookId);
+                            updateBookName(book.name,book.bookId);
 
                             QDomNode nc = nt.firstChild();
 
@@ -752,338 +750,474 @@ void BibConv::importOsisXml(QString fileName)
 
    ui->plainTextEdit->setPlainText(printBible(bible));
    ui->progressBar->setValue(ui->progressBar->maximum());
-    //    btext = out;
-//    ui->progressBar->setValue(ct);
 }
 
-void BibConv::updateOsisBibleName(QString &bName, int &bNum)
+void BibConv::importCorpusXml(QString fileName)
 {
-    if("Gen" == bName)
+    QDomDocument domDoc;
+    QFile file (fileName);
+
+    QString info = "Imported from Corpus XML https://github.com/christos-c/bible-corpus/@%--------------------------@%";
+    Bible bible;
+    bible.copyright = info + bible.copyright;
+
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Can't open file: " << fileName;
+        ui->lineEdit->setText("Can't open file: " + fileName);
+        return;
+    }
+
+
+    if(!domDoc.setContent(&file,false))
+    {
+        ui->lineEdit->setText("Error XML DOM Document open");
+        file.close();
+        return;
+    }
+    file.close();
+
+    int xc(0), ct(0);
+    ui->progressBar->setMaximum(70000);
+
+    QDomElement domElem = domDoc.documentElement();
+    QDomNode n = domElem.firstChild();
+
+    while(!n.isNull())
+    {
+        if("cesHeader" == n.nodeName())
+        {
+            QDomNode nh = n.firstChild();
+            while(!nh.isNull())
+            {
+                if("profileDesc" == nh.nodeName())
+                {
+                    QDomNode np = nh.firstChild();
+                    while (!np.isNull())
+                    {
+                        if("langUsage" == np.nodeName())
+                        {
+                                    QDomNode nl = np.firstChild();
+                                    while (!nl.isNull())
+                                    {
+                                        if("language" == nl.nodeName())
+                                        {
+                                            bible.abbr = nl.toElement().attribute("iso639").simplified();
+                                            bible.name = nl.toElement().text().simplified();
+                                        }
+                                        ++ct;
+                                        ui->progressBar->setValue(ct);
+                                        nl = nl.nextSibling();
+                                    }
+
+                        }
+                        np = np.nextSibling();
+                    }
+                }
+                nh = nh.nextSibling();
+            }
+        }
+        else if("text" == n.nodeName())
+        {
+            QDomNode nt = n.firstChild();
+            while(!nt.isNull())
+            {
+                if("body" == nt.nodeName())
+                {
+                    QDomNode nb = nt.firstChild();
+                    int bkNum = 0;
+
+                    while (!nb.isNull())
+                    {
+                        if("div" == nb.nodeName() &&  "book" == nb.toElement().attribute("type"))
+                        {
+                            Book book;
+                            book.name = nb.toElement().attribute("id").split(".").last().simplified();
+                            updateBookName(book.name,book.bookId);
+
+                            QDomNode nc = nb.firstChild();
+
+                            while (!nc.isNull())
+                            {
+                                if("div" == nc.nodeName() &&  "chapter" == nc.toElement().attribute("type"))
+                                {
+                                    Chapter chap;
+                                    chap.num = nc.toElement().attribute("id").split(".").last().toInt();
+                                    QDomNode nv = nc.firstChild();
+
+                                    while (!nv.isNull())
+                                    {
+                                        if("seg" == nv.nodeName() &&  "verse" == nv.toElement().attribute("type"))
+                                        {
+                                            Verse v;
+                                            v.num = nv.toElement().attribute("id").split(".").last().toInt();
+                                            v.text = nv.toElement().text().simplified();
+                                            chap.addVerse(v);
+                                        }
+
+                                        ++ct;
+                                        ui->progressBar->setValue(ct);
+                                        nv = nv.nextSibling();
+                                    }
+
+                                    ++book.chapterCount;
+                                    book.addChapter(chap);
+                                }
+                                ++ct;
+                                ui->progressBar->setValue(ct);
+                                nc = nc.nextSibling();
+                            }
+
+                            bible.addBook(book);
+                        }
+                        ++ct;
+                        ui->progressBar->setValue(ct);
+                        nb = nb.nextSibling();
+                    }
+                }
+                ++ct;
+                ui->progressBar->setValue(ct);
+                nt = nt.nextSibling();
+            }
+        }
+        ++ct;
+        ui->progressBar->setValue(ct);
+        n = n.nextSibling();
+    }
+
+   ui->plainTextEdit->setPlainText(printBible(bible));
+   ui->progressBar->setValue(ui->progressBar->maximum());
+}
+
+void BibConv::updateBookName(QString &bName, int &bNum)
+{
+    if("Gen" == bName || "GEN" == bName)
     {
         bName = "Genesis";
         bNum = 1;
     }
-    else if("Exod" == bName)
+    else if("Exod" == bName || "EXO" == bName)
     {
         bName = "Exodus";
         bNum = 2;
     }
-    else if("Lev" == bName)
+    else if("Lev" == bName || "LEV" == bName)
     {
         bName = "Leviticus";
         bNum = 3;
     }
-    else if("Num" == bName)
+    else if("Num" == bName || "NUM" == bName)
     {
         bName = "Numbers";
         bNum = 4;
     }
-    else if("Deut" == bName)
+    else if("Deut" == bName || "DEU" == bName)
     {
         bName = "Deuteronomy";
         bNum = 5;
     }
-    else if("Josh" == bName)
+    else if("Josh" == bName || "JOS" == bName)
     {
         bName = "Joshua";
         bNum = 6;
     }
-    else if("Judg" == bName)
+    else if("Judg" == bName || "JDG" == bName)
     {
         bName = "Judges";
         bNum = 7;
     }
-    else if("Ruth" == bName)
+    else if("Ruth" == bName || "RUT" == bName)
     {
         bName = "Ruth";
         bNum = 8;
     }
-    else if("1Sam" == bName)
+    else if("1Sam" == bName || "1SA" == bName)
     {
         bName = "1 Samuel";
         bNum = 9;
     }
-    else if("2Sam" == bName)
+    else if("2Sam" == bName || "2SA" == bName)
     {
         bName = "2 Samuel";
         bNum = 10;
     }
-    else if("1Kgs" == bName)
+    else if("1Kgs" == bName || "1KI" == bName)
     {
         bName = "1 Kings";
         bNum = 11;
     }
-    else if("2Kgs" == bName)
+    else if("2Kgs" == bName || "2KI" == bName)
     {
         bName = "2 Kings";
         bNum = 12;
     }
-    else if("1Chr" == bName)
+    else if("1Chr" == bName || "1CH" == bName)
     {
         bName = "1 Chronicles";
         bNum = 13;
     }
-    else if("2Chr" == bName)
+    else if("2Chr" == bName || "2CH" == bName)
     {
         bName = "2 Chronicles";
         bNum = 14;
     }
-    else if("Ezra" == bName)
+    else if("Ezra" == bName || "EZR" == bName)
     {
         bName = "Ezra";
         bNum = 15;
     }
-    else if("Neh" == bName)
+    else if("Neh" == bName || "NEH" == bName)
     {
         bName = "Nehemiah";
         bNum = 16;
     }
-    else if("Esth" == bName)
+    else if("Esth" == bName || "EST" == bName)
     {
         bName = "Esther";
         bNum = 17;
     }
-    else if("Job" == bName)
+    else if("Job" == bName || "JOB" == bName)
     {
         bName = "Job";
         bNum = 18;
     }
-    else if("Ps" == bName)
+    else if("Ps" == bName || "PSA" == bName)
     {
         bName = "Psalms";
         bNum = 19;
     }
-    else if("Prov" == bName)
+    else if("Prov" == bName || "PRO" == bName)
     {
         bName = "Proverbs";
         bNum = 20;
     }
-    else if("Eccl" == bName)
+    else if("Eccl" == bName || "ECC" == bName)
     {
         bName = "Ecclesiastes";
         bNum = 21;
     }
-    else if("Song" == bName)
+    else if("Song" == bName || "SON" == bName)
     {
         bName = "Song of Solomon";
         bNum = 22;
     }
-    else if("Isa" == bName)
+    else if("Isa" == bName || "ISA" == bName)
     {
         bName = "Isaiah";
         bNum = 23;
     }
-    else if("Jer" == bName)
+    else if("Jer" == bName || "JER" == bName)
     {
         bName = "Jeremiah";
         bNum =24;
     }
-    else if("Lam" == bName)
+    else if("Lam" == bName || "LAM" == bName)
     {
         bName = "Lamentations";
         bNum = 25;
     }
-    else if("Ezek" == bName)
+    else if("Ezek" == bName || "EZE" == bName)
     {
         bName = "Ezekiel";
         bNum = 26;
     }
-    else if("Dan" == bName)
+    else if("Dan" == bName || "DAN" == bName)
     {
         bName = "Daniel";
         bNum = 27;
     }
-    else if("Hos" == bName)
+    else if("Hos" == bName || "HOS" == bName)
     {
         bName = "Hosea";
         bNum = 28;
     }
-    else if("Joel" == bName)
+    else if("Joel" == bName || "JOE" == bName)
     {
         bName = "Joel";
         bNum = 29;
     }
-    else if("Amos" == bName)
+    else if("Amos" == bName || "AMO" == bName)
     {
         bName = "Amos";
         bNum = 30;
     }
-    else if("Obad" == bName)
+    else if("Obad" == bName || "OBA" == bName)
     {
         bName = "Obadiah";
         bNum = 31;
     }
-    else if("Jonah" == bName)
+    else if("Jonah" == bName || "JON" == bName)
     {
         bName = "Jonah";
         bNum = 32;
     }
-    else if("Mic" == bName)
+    else if("Mic" == bName || "MIC" == bName)
     {
         bName = "Micah";
         bNum = 33;
     }
-    else if("Nah" == bName)
+    else if("Nah" == bName || "NAH" == bName)
     {
         bName = "Nahum";
         bNum = 34;
     }
-    else if("Hab" == bName)
+    else if("Hab" == bName || "HAB" == bName)
     {
         bName = "Habakkuk";
         bNum = 35;
     }
-    else if("Zeph" == bName)
+    else if("Zeph" == bName || "ZEP" == bName)
     {
         bName = "Zephaniah";
         bNum = 36;
     }
-    else if("Hag" == bName)
+    else if("Hag" == bName || "HAG" == bName)
     {
         bName = "Haggai";
         bNum = 37;
     }
-    else if("Zech" == bName)
+    else if("Zech" == bName || "ZEC" == bName)
     {
         bName = "Zechariah";
         bNum = 38;
     }
-    else if("Mal" == bName)
+    else if("Mal" == bName || "MAL" == bName)
     {
         bName = "Malachi";
         bNum = 39;
     }
-    else if("Matt" == bName)
+    else if("Matt" == bName || "MAT" == bName)
     {
         bName = "Matthew";
         bNum = 40;
     }
-    else if("Mark" == bName)
+    else if("Mark" == bName || "MAR" == bName)
     {
         bName = "Mark";
         bNum = 41;
     }
-    else if("Luke" == bName)
+    else if("Luke" == bName || "LUK" == bName)
     {
         bName = "Luke";
         bNum = 42;
     }
-    else if("John" == bName)
+    else if("John" == bName || "JOH" == bName)
     {
         bName = "John";
         bNum = 43;
     }
-    else if("Acts" == bName)
+    else if("Acts" == bName || "ACT" == bName)
     {
         bName = "Acts";
         bNum = 44;
     }
-    else if("Rom" == bName)
+    else if("Rom" == bName || "ROM" == bName)
     {
         bName = "Romans";
         bNum = 45;
     }
-    else if("1Cor" == bName)
+    else if("1Cor" == bName || "1CO" == bName)
     {
         bName = "1 Corinthians";
         bNum = 46;
     }
-    else if("2Cor" == bName)
+    else if("2Cor" == bName || "2CO" == bName)
     {
         bName = "2 Corinthians";
         bNum = 47;
     }
-    else if("Gal" == bName)
+    else if("Gal" == bName || "GAL" == bName)
     {
         bName = "Galatians";
         bNum = 48;
     }
-    else if("Eph" == bName)
+    else if("Eph" == bName || "EPH" == bName)
     {
         bName = "Ephesians";
         bNum = 49;
     }
-    else if("Phil" == bName)
+    else if("Phil" == bName || "PHI" == bName)
     {
         bName = "Philippians";
         bNum = 50;
     }
-    else if("Col" == bName)
+    else if("Col" == bName || "COL" == bName)
     {
         bName = "Colossians";
         bNum = 51;
     }
-    else if("1Thess" == bName)
+    else if("1Thess" == bName || "1TH" == bName)
     {
         bName = "1 Thessalonians";
         bNum = 52;
     }
-    else if("2Thess" == bName)
+    else if("2Thess" == bName || "2TH" == bName)
     {
         bName = "2 Thessalonians";
         bNum = 53;
     }
-    else if("1Tim" == bName)
+    else if("1Tim" == bName || "1TI" == bName)
     {
         bName = "1 Timothy";
         bNum = 54;
     }
-    else if("2Tim" == bName)
+    else if("2Tim" == bName || "2TI" == bName)
     {
         bName = "2 Timothy";
         bNum = 55;
     }
-    else if("Titus" == bName)
+    else if("Titus" == bName || "TIT" == bName)
     {
         bName = "Titus";
         bNum = 56;
     }
-    else if("Phlm" == bName)
+    else if("Phlm" == bName || "PHM" == bName)
     {
         bName = "Philemon";
         bNum = 57;
     }
-    else if("Heb" == bName)
+    else if("Heb" == bName || "HEB" == bName)
     {
         bName = "Hebrews";
         bNum = 58;
     }
-    else if("Jas" == bName)
+    else if("Jas" == bName || "JAM" == bName)
     {
         bName = "James";
         bNum = 59;
     }
-    else if("1Pet" == bName)
+    else if("1Pet" == bName || "1PE" == bName)
     {
         bName = "1 Peter";
         bNum = 60;
     }
-    else if("2Pet" == bName)
+    else if("2Pet" == bName || "2PE" == bName)
     {
         bName = "2 Peter";
         bNum = 61;
     }
-    else if("1John" == bName)
+    else if("1John" == bName || "1JO" == bName)
     {
         bName = "1 John";
         bNum = 62;
     }
-    else if("2John" == bName)
+    else if("2John" == bName || "2JO" == bName)
     {
         bName = "2 John";
         bNum = 63;
     }
-    else if("3John" == bName)
+    else if("3John" == bName || "3JO" == bName)
     {
         bName = "3 John";
         bNum = 64;
     }
-    else if("Jude" == bName)
+    else if("Jude" == bName || "JUD" == bName)
     {
         bName = "Jude";
         bNum = 65;
     }
-    else if("Rev" == bName)
+    else if("Rev" == bName || "REV" == bName)
     {
         bName = "Revelation";
         bNum = 66;
@@ -1209,7 +1343,7 @@ QString BibConv::printBible(Bible &bible)
                 {
 //                    qDebug()<<"Empty Verse: B" << get3(b.bookId) << "C" << get3(c.num) << "V" << get3(v.num);
                 }
-
+                ui->progressBar->setValue(ui->progressBar->value()+1);
             }
         }
         if(hasVerses)
