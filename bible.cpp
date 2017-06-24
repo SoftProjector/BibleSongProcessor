@@ -9,6 +9,7 @@ Verse::Verse()
 Chapter::Chapter()
 {
     num = 0;
+    path = "";
 }
 
 void Chapter::addVerse(Verse v)
@@ -34,6 +35,15 @@ void Book::setBookId(QString fp)
 void Book::addChapter(Chapter c)
 {
     chapters.append(c);
+}
+
+void Book::clear()
+{
+    chapters.clear();
+    name = "";
+    filePath = "";
+    chapterCount = 0;
+    bookId = 0;
 }
 
 Bible::Bible()

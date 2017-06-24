@@ -19,6 +19,7 @@ public:
     Chapter();
 
     int num;
+    QString path;
     QList<Verse> verses;
     void addVerse(Verse v);
 };
@@ -36,6 +37,7 @@ public:
 
     void setBookId(QString fp);
     void addChapter(Chapter c);
+    void clear();
 };
 
 class Bible

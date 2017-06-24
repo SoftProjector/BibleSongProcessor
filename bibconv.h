@@ -50,12 +50,16 @@ private slots:
     void importXml(QString fileName);
     void importOsisXml(QString fileName);
     void importCorpusXml(QString fileName);
+    void importEpubXML(QString directory);
+    void processEbupChapter(Chapter &c);
+    void processEbupVerse(QDomNode &n, QDomDocument &dd);
     void updateBookName(QString &bName, int &bNum);
     QString printBible(Bible &bible);
 
     void on_comboBox_activated(int index);
 
     void on_pushButtonSave_clicked();
+    void incrementProgressBar();
 
 private:
     Ui::BibConv *ui;

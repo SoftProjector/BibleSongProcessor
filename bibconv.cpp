@@ -36,6 +36,17 @@ void BibConv::on_comboBox_activated(int index)
             ui->lineEdit->setText(fn);
         }
         break;
+    case CSB_XML:
+        fn = QFileDialog::getExistingDirectory(this,"EPUB XHTML directory");
+        if(fn.isNull())
+        {
+            ui->lineEdit->setText("Error opening directory. Please try again.");
+            return;
+        }
+        else
+        {
+            ui->lineEdit->setText(fn);
+        }
     default:
         break;
     }
@@ -60,9 +71,10 @@ void BibConv::on_pushButtonStart_clicked()
         importCorpusXml(ui->lineEdit->text());
         break;
     case OSIS_XML:
-         importOsisXml(ui->lineEdit->text());
+        importOsisXml(ui->lineEdit->text());
         break;
     case CSB_XML:
+        importEpubXML(ui->lineEdit->text());
         break;
     default:
         break;
@@ -227,7 +239,7 @@ void BibConv::importBibleQuote()
         QString s = QString::number(bk.bookId) + "\t" + bk.name + "\t" + QString::number(bk.chapterCount);
         text += "\n" + s;
         vtext += processBookNRT(bibleDir,bk,bible.chapterDelim.trimmed(),bible.verseDelim.trimmed());
-        ui->progressBar->setValue(ui->progressBar->value()+1);
+        incrementProgressBar();
     }
     text += "\n-----" + vtext;
     ui->plainTextEdit->setPlainText(text);
@@ -609,7 +621,7 @@ void BibConv::importOsisXml(QString fileName)
     }
     file.close();
 
-    int xc(0), ct(0);
+    int ct(0);
     ui->progressBar->setMaximum(272000);
 
     QDomElement domElem = domDoc.documentElement();
@@ -655,7 +667,6 @@ void BibConv::importOsisXml(QString fileName)
                 else if("div" == nOT.nodeName() && "x-testament" == nOT.toElement().attribute("type"))
                 {
                     QDomNode nt = nOT.firstChild();
-                    int bkNum = 0;
 
                     while (!nt.isNull())
                     {
@@ -690,7 +701,7 @@ void BibConv::importOsisXml(QString fileName)
                                                         "reference"==nvc.nodeName() ||
                                                         "note"==nvc.nodeName())
                                                 {
-                                                  nv.removeChild(nv.childNodes().at(icn));
+                                                    nv.removeChild(nv.childNodes().at(icn));
                                                 }
 
                                                 ++ct;
@@ -706,7 +717,7 @@ void BibConv::importOsisXml(QString fileName)
                                                         "reference"==nvc.nodeName() ||
                                                         "note"==nvc.nodeName())
                                                 {
-                                                  nv.removeChild(nv.childNodes().at(icn));
+                                                    nv.removeChild(nv.childNodes().at(icn));
                                                 }
                                             }
 
@@ -748,8 +759,8 @@ void BibConv::importOsisXml(QString fileName)
         n = n.nextSibling();
     }
 
-   ui->plainTextEdit->setPlainText(printBible(bible));
-   ui->progressBar->setValue(ui->progressBar->maximum());
+    ui->plainTextEdit->setPlainText(printBible(bible));
+    ui->progressBar->setValue(ui->progressBar->maximum());
 }
 
 void BibConv::importCorpusXml(QString fileName)
@@ -778,7 +789,7 @@ void BibConv::importCorpusXml(QString fileName)
     }
     file.close();
 
-    int xc(0), ct(0);
+    int ct(0);
     ui->progressBar->setMaximum(70000);
 
     QDomElement domElem = domDoc.documentElement();
@@ -798,18 +809,18 @@ void BibConv::importCorpusXml(QString fileName)
                     {
                         if("langUsage" == np.nodeName())
                         {
-                                    QDomNode nl = np.firstChild();
-                                    while (!nl.isNull())
-                                    {
-                                        if("language" == nl.nodeName())
-                                        {
-                                            bible.abbr = nl.toElement().attribute("iso639").simplified();
-                                            bible.name = nl.toElement().text().simplified();
-                                        }
-                                        ++ct;
-                                        ui->progressBar->setValue(ct);
-                                        nl = nl.nextSibling();
-                                    }
+                            QDomNode nl = np.firstChild();
+                            while (!nl.isNull())
+                            {
+                                if("language" == nl.nodeName())
+                                {
+                                    bible.abbr = nl.toElement().attribute("iso639").simplified();
+                                    bible.name = nl.toElement().text().simplified();
+                                }
+                                ++ct;
+                                ui->progressBar->setValue(ct);
+                                nl = nl.nextSibling();
+                            }
 
                         }
                         np = np.nextSibling();
@@ -826,7 +837,6 @@ void BibConv::importCorpusXml(QString fileName)
                 if("body" == nt.nodeName())
                 {
                     QDomNode nb = nt.firstChild();
-                    int bkNum = 0;
 
                     while (!nb.isNull())
                     {
@@ -886,8 +896,262 @@ void BibConv::importCorpusXml(QString fileName)
         n = n.nextSibling();
     }
 
-   ui->plainTextEdit->setPlainText(printBible(bible));
-   ui->progressBar->setValue(ui->progressBar->maximum());
+    ui->plainTextEdit->setPlainText(printBible(bible));
+    ui->progressBar->setValue(ui->progressBar->maximum());
+}
+
+void BibConv::importEpubXML(QString directory)
+{
+    QDir dir(directory);
+    dir.setFilter(QDir::Files | QDir::NoSymLinks);
+    dir.setSorting(QDir::Unsorted );
+    QFileInfoList files = dir.entryInfoList();
+
+    Bible bible;
+    Book b;
+
+    int bookId = 0;
+    ui->progressBar->setMaximum(files.size() * 2);
+
+    int chapNum = 0;
+    int bStartIndex = 0;
+
+    for (int i = 0; i < files.size(); ++i)
+    {
+        QFileInfo f = files.at(i);
+        QStringList l = f.fileName().split(".").first().split("-");
+        QString bn = l.at(2);
+        int bi = l.at(1).toInt();
+        int cn = 0;
+        if(3 == l.size())
+        {
+            cn = 1;
+        }
+        else
+        {
+            cn = l.at(3).toInt();
+        }
+
+        if(bookId != bi)
+        {
+            if(0 != b.bookId)
+            {
+                b.chapterCount = chapNum;
+                bible.addBook(b);
+            }
+            // new book
+            b.clear();
+            b.bookId = bi;
+            b.name = bn;
+            bookId = bi;
+            chapNum = 0;
+            bStartIndex = i;
+        }
+
+        ++chapNum;
+        Chapter c;
+
+        if(cn != chapNum)
+        {
+            for (int k = bStartIndex;k<files.size();++k)
+            {
+                QFileInfo fx = files.at(k);
+                QStringList lx = fx.fileName().split(".").first().split("-");
+                int bix = lx.at(1).toInt();
+                int cnx =0;
+
+                if(3 == lx.size())
+                {
+                    cnx = 1;
+                }
+                else
+                {
+                    cnx = lx.at(3).toInt();
+                }
+
+                if(chapNum == cnx)
+                {
+                    c.path = fx.filePath();
+                    c.num = cnx;
+                    break;
+                }
+                if(bookId != bix)
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            c.path = f.filePath();
+            c.num = cn;
+        }
+        //        c.path = f.filePath();
+        //        c.num = cn;
+        //        qDebug()<<cn<<chapNum<<c.num<<f.fileName()<<c.path<<f.filePath();
+
+        processEbupChapter(c);
+        b.addChapter(c);
+
+        // add last book
+        if(i == files.size()-1)
+        {
+            b.chapterCount = chapNum;
+            bible.addBook(b);
+        }
+        incrementProgressBar();
+    }
+
+    ui->plainTextEdit->setPlainText(printBible(bible));
+}
+
+void BibConv::processEbupChapter(Chapter &c)
+{
+    Verse v;
+    v.num = 0;
+
+    QDomDocument domDoc;
+    QFile file (c.path);
+
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Can't open file: " << c.path;
+        ui->lineEdit->setText("Can't open file: " + c.path);
+        return;
+    }
+    else
+    {
+        //        qDebug() << "Opening file: " << c.path;
+    }
+
+    if(!domDoc.setContent(&file,false))
+    {
+        ui->lineEdit->setText("Error XML DOM Document open");
+        file.close();
+        return;
+    }
+    file.close();
+
+    QDomElement domElem = domDoc.documentElement();
+    QDomNode n = domElem.firstChild();
+
+    QString chapterText = "";
+
+    while(!n.isNull())
+    {
+        if("body" == n.nodeName())
+        {
+            QDomNode nb = n.firstChild();
+            while(!nb.isNull())
+            {
+                if("section" == nb.nodeName())
+                {
+                    c.num = nb.toElement().attribute("id").split(".").last().toInt();
+                    QDomNode ns = nb.firstChild();
+                    while (!ns.isNull())
+                    {
+                        if("p" == ns.nodeName() || "section" == ns.nodeName()
+                                || "table" == ns.nodeName() || "ol" == ns.nodeName()
+                                || "blockquote" == ns.nodeName())
+                        {
+                            //                            qDebug()<<"Child Node Count: "<<ns.childNodes().count()<<ns.nodeName()<<ns.toElement().attribute("class")<<ns.toElement().text();
+
+                            if("speaker" == ns.toElement().attribute("class") || "supertitle" == ns.toElement().attribute("class"))
+                            {
+                                ns = ns.nextSibling();
+                                continue;
+                            }
+
+                            if("speaker" != ns.toElement().attribute("class")
+                                    && "supertitle" != ns.toElement().attribute("class")
+                                    && "chapter-number" != ns.toElement().attribute("class")
+                                    && "verse-number" != ns.toElement().attribute("class")
+                                    && "speaker" != ns.toElement().attribute("class")
+                                    && "dynprose" != ns.toElement().attribute("class")
+                                    && "" != ns.toElement().attribute("class")
+                                    && "otdynprose" != ns.toElement().attribute("class")
+                                    && "poetryblock" != ns.toElement().attribute("class"))
+                            {
+                                qDebug()<<"Verify:"<<ns.toElement().attribute("class");
+                            }
+
+                            processEbupVerse(ns,domDoc);
+
+                            chapterText += " " + ns.toElement().text().simplified().remove("†");
+                        }
+                        ns = ns.nextSibling();
+                    }
+                }
+                nb = nb.nextSibling();
+            }
+        }
+        n = n.nextSibling();
+    }
+
+    QStringList chapterVerses = chapterText.split("@#");
+    foreach (QString vt, chapterVerses)
+    {
+        if("" == vt.trimmed())
+        {
+            continue;
+        }
+        QStringList vl = vt.trimmed().split(" ");
+        QString vs = vl.first();
+        bool ok;
+        int vNum = vs.toInt(&ok,10);
+        v.num++;
+        if(ok)
+        {
+            v.num = vNum;
+            if (vNum != v.num)
+            {
+                qDebug()<<"numMisMatch"<<c.path<<v.num<<vt;
+            }
+        }
+        vs = "";
+        for(int vp = 1;vp<vl.size();++vp)
+        {
+            vs += "  " + vl.at(vp);
+        }
+        v.text = vs.simplified();
+        c.addVerse(v);
+    }
+}
+
+void BibConv::processEbupVerse(QDomNode &n, QDomDocument &dd)
+{
+    for(int icn(0);icn<n.childNodes().count();++icn)
+    {
+        //        qDebug()<<"Name:"<<n.nodeName()<<"class"<<n.toElement().attribute("class")<<n.toElement().text();
+        // Remove unwanted nodes
+        QDomNode np = n.childNodes().at(icn);
+        processEbupVerse(np,dd);
+        n.childNodes().at(icn) = np;
+
+        if("chapter-number" == np.toElement().attribute("class"))
+        {
+            QDomNode nx = n.childNodes().at(icn);
+            n.removeChild(n.childNodes().at(icn));
+            QDomText dt = dd.createTextNode("1 " );
+            n.insertBefore(dt,n.childNodes().at(icn));
+        }
+        else if("verse-number" == np.toElement().attribute("class"))
+        {
+            QString vn = np.toElement().text();
+
+            n.removeChild(n.childNodes().at(icn));
+            QDomText dt = dd.createTextNode("@#" + vn + " " );
+            n.insertBefore(dt,n.childNodes().at(icn));
+        }
+
+        if("h3"==np.nodeName() /*|| "a"==np.nodeName()*/)
+        {
+            //            qDebug()<<"node Name"<<np.nodeName()<<np.toElement().text()<<n.toElement().text();
+            n.removeChild(n.childNodes().at(icn));
+            //         qDebug()<<"node Name"<<np.nodeName()<<np.toElement().text()<<n.toElement().text();
+        }
+    }
 }
 
 void BibConv::updateBookName(QString &bName, int &bNum)
@@ -1333,15 +1597,17 @@ QString BibConv::printBible(Bible &bible)
                 if(!v.text.isEmpty())
                 {
                     hasVerses = true;
-                    verses += "\nB" + get3(b.bookId) + "C" + get3(c.num) + "V" + get3(v.num) +
+                    QString vs = "\nB" + get3(b.bookId) + "C" + get3(c.num) + "V" + get3(v.num) +
                             "\t" + QString::number(b.bookId) +
                             "\t" + QString::number(c.num) +
                             "\t" + QString::number(v.num) +
                             "\t" + v.text;
+                    verses += vs;
+                    //                    qDebug()<<"Verse: "<<vs;
                 }
                 else
                 {
-//                    qDebug()<<"Empty Verse: B" << get3(b.bookId) << "C" << get3(c.num) << "V" << get3(v.num);
+                    //                    qDebug()<<"Empty Verse: B" << get3(b.bookId) << "C" << get3(c.num) << "V" << get3(v.num);
                 }
                 ui->progressBar->setValue(ui->progressBar->value()+1);
             }
@@ -1537,4 +1803,9 @@ void BibConv::on_pushButtonSave_clicked()
         }
         ofile.close();
     }
+}
+
+void BibConv::incrementProgressBar()
+{
+    ui->progressBar->setValue(ui->progressBar->value()+1);
 }
