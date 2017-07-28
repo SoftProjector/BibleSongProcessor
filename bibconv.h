@@ -21,21 +21,23 @@ enum BibleConvType
     ZAFENIA_XML,
     CORPUS_XML,
     OSIS_XML,
-    CSB_XML
+    CSB_XML,
+    SQLITE
 };
 
 class BibConv : public QMainWindow
 {
     Q_OBJECT
-    
+
 public:
     explicit BibConv(QWidget *parent = 0);
     ~BibConv();
-    
+
 private slots:
     void on_pushButtonStart_clicked();
     QString processLineMySword(QString line, QString &book);
     void importMySword();
+    void importSQlite(QString fileName);
     void importBibleQuote();
     void importBibleDatabase();
     QString get3(int i);

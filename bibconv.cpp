@@ -47,6 +47,19 @@ void BibConv::on_comboBox_activated(int index)
         {
             ui->lineEdit->setText(fn);
         }
+        break;
+    case SQLITE:
+        fn = QFileDialog::getOpenFileName(this, "Open SQLite database", "", "*");
+        if(fn.isNull())
+        {
+            ui->lineEdit->setText("Error opening xml file. Please try again.");
+            return;
+        }
+        else
+        {
+            ui->lineEdit->setText(fn);
+        }
+        break;
     default:
         break;
     }
@@ -75,6 +88,9 @@ void BibConv::on_pushButtonStart_clicked()
         break;
     case CSB_XML:
         importEpubXML(ui->lineEdit->text());
+        break;
+    case SQLITE:
+        importSQlite(ui->lineEdit->text());
         break;
     default:
         break;
@@ -466,6 +482,101 @@ void BibConv::importMySword()
     books += bkOld + "\t" + bookOld + "\t" + chOld + "\n";
     alls = books + "-----\n" + bible;
     ui->plainTextEdit->setPlainText(alls);
+}
+
+void BibConv::importSQlite(QString fileName)
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE","tsw");
+    db.setDatabaseName(fileName);
+    if(!db.open())
+    {
+        QMessageBox mb(this);
+        mb.setText("An error has ocured when database file.\n"
+                   "Please try again.");
+        mb.setIcon(QMessageBox::Critical);
+        mb.setStandardButtons(QMessageBox::Ok);
+        mb.exec();
+        return;
+    }
+    QSqlQuery sq(db);
+
+    int i(0);
+    ui->progressBar->setMaximum(31102);
+    Bible bible;
+    bool ok = sq.exec("SELECT number, osis, human FROM books");
+
+    if(!ok)
+    {
+        qDebug()<<sq.lastQuery()<<sq.lastError();
+        return;
+    }
+
+//    int book_num(0);
+
+    while (sq.next())
+    {
+        Book book;
+        book.bookId = sq.value(0).toInt();
+        book.filePath = sq.value(1).toString();
+        book.name = sq.value(2).toString().toLower();
+        QStringList words = book.name.split(" ");
+        book.name.clear();
+        foreach (QString w, words)
+        {
+            QChar c = w.at(0);
+            c = c.toUpper();
+            w.replace(0,1,c);
+            book.name += " " + w;
+        }
+        book.name = book.name.trimmed();
+
+//        book.chapterCount = sq.value(2).toInt();
+        bible.addBook(book);
+        ui->progressBar->setValue(++i);
+    }
+
+    sq.clear();
+
+    for(int ib = 0;ib < bible.books.count(); ++ib)
+    {
+        Book bk = bible.books.at(ib);
+//        book_num = bk.chapterCount;
+        int chNum = 0, chNumOld(0);
+        Chapter ch;
+        ch.num = 0;
+        ok = sq.exec(QString("SELECT verse, unformatted FROM verses WHERE book = \"%1\"").arg(bk.filePath));
+        if(!ok)
+        {
+            qDebug()<<sq.lastQuery()<<sq.lastError();
+        }
+        while (sq.next())
+        {
+            Verse v;
+            float cv = sq.value(0).toFloat();
+            chNum = cv;
+            cv = cv - chNum;
+            cv = cv * 1000;
+            qDebug()<<cv;
+            if(0 != chNumOld && chNum != chNumOld)
+            {
+                ch.num = chNumOld;
+                bk.addChapter(ch);
+                ch.clear();
+            }
+            v.num = qRound(cv);
+            v.text = sq.value(1).toString().simplified();
+            ch.addVerse(v);
+            ui->progressBar->setValue(++i);
+            chNumOld = chNum;
+        }
+        ch.num = chNum;
+        bk.addChapter(ch);
+        bk.chapterCount = chNum;
+        sq.clear();
+
+        bible.books.replace(ib,bk);
+    }
+    ui->plainTextEdit->setPlainText(printBible(bible));
 }
 
 void BibConv::importXml(QString fileName)

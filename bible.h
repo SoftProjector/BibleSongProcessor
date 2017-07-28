@@ -22,6 +22,7 @@ public:
     QString path;
     QList<Verse> verses;
     void addVerse(Verse v);
+    void clear();
 };
 
 class Book

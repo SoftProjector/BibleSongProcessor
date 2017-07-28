@@ -12,6 +12,13 @@ Chapter::Chapter()
     path = "";
 }
 
+void Chapter::clear()
+{
+    verses.clear();
+    num = 0;
+    path = "";
+}
+
 void Chapter::addVerse(Verse v)
 {
     verses.append(v);

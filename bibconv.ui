@@ -54,6 +54,11 @@
           <string>CSB xml</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>SQLite</string>
+         </property>
+        </item>
        </widget>
       </item>
       <item>
@@ -133,7 +138,7 @@
      <x>0</x>
      <y>0</y>
      <width>555</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
