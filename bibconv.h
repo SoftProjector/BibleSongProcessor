@@ -8,13 +8,20 @@
 #include <QtSql>
 #include <QDomDocument>
 #include "bible.h"
+#include "song.h"
 
 namespace Ui {
 class BibConv;
 }
+enum ConvertionType
+{
+    CT_BIBLE,
+    CT_SONG
+};
 
 enum BibleConvType
 {
+    PLEASE_SELECT,
     MY_SWORD,
     BIBLE_QUOTE,
     BIBLE_DATABASE,
@@ -23,6 +30,13 @@ enum BibleConvType
     OSIS_XML,
     CSB_XML,
     SQLITE
+};
+
+enum SongConvType
+{
+    PLEASE_SELECT_S,
+    EASISLIDES_XML,
+    EASISLIDES_FILES
 };
 
 class BibConv : public QMainWindow
@@ -56,17 +70,30 @@ private slots:
     void processEbupChapter(Chapter &c);
     void processEbupVerse(QDomNode &n, QDomDocument &dd);
     void updateBookName(QString &bName, int &bNum);
+    void processEasislidesXml(QString fileName);
+    void processEasislidesFiles(QString directory);
     QString printBible(Bible &bible);
 
-    void on_comboBox_activated(int index);
-
     void on_pushButtonSave_clicked();
+    void exportBible(QString path);
     void incrementProgressBar();
+
+    void on_comboBoxConvType_activated(int index);
+
+    void on_comboBoxBSConvType_activated(int index);
+    void processBibleConversions();
+    void processSongConversions();
+    void processSongText(Song &song);
 
 private:
     Ui::BibConv *ui;
     int bConType;
+    int convType;
     QString bibleTitle;
+    QStringList bibleTypes;
+    QStringList songTypes;
+
+    Songbook songBook;
 };
 
 #endif // BIBCONV_H

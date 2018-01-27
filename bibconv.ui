@@ -18,48 +18,21 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="comboBoxConvType">
         <item>
          <property name="text">
-          <string>MySword</string>
+          <string>Bible </string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>BibleQuote</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>BibleDatabase</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Zefania XML</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Corpus XML</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Osis XML</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>CSB xml</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>SQLite</string>
+          <string>Song</string>
          </property>
         </item>
        </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBoxBSConvType"/>
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonStart">

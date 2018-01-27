@@ -7,7 +7,16 @@ BibConv::BibConv(QWidget *parent) :
     ui(new Ui::BibConv)
 {
     ui->setupUi(this);
+    bibleTypes << "Select Bible Type" << "My Sword" << "Bible Quote" <<
+                  "Bible Database" << "Zafenia XML" << "Corpus XML" <<
+                  "OSIS XML" << "CSB SML" << "SQLite";
+    songTypes << "Select Song Type" << "EasiSlides XML" << "EasySlides Files";
     bConType = 0;
+    if(0 == ui->comboBoxConvType->currentIndex())
+    {
+        ui->comboBoxBSConvType->clear();
+        ui->comboBoxBSConvType->addItems(bibleTypes);
+    }
 }
 
 BibConv::~BibConv()
@@ -15,11 +24,43 @@ BibConv::~BibConv()
     delete ui;
 }
 
-void BibConv::on_comboBox_activated(int index)
+void BibConv::on_comboBoxConvType_activated(int index)
 {
-    QString fn = "";
+    convType = index;
+    switch (convType) {
+    case CT_BIBLE:
+        ui->comboBoxBSConvType->clear();
+        ui->comboBoxBSConvType->addItems(bibleTypes);
+        break;
+    case CT_SONG:
+        ui->comboBoxBSConvType->clear();
+        ui->comboBoxBSConvType->addItems(songTypes);
+        break;
+    default:
+        break;
+    }
+}
 
+void BibConv::on_comboBoxBSConvType_activated(int index)
+{
     bConType = index;
+
+    switch (convType) {
+    case CT_BIBLE:
+        processBibleConversions();
+        break;
+    case CT_SONG:
+        processSongConversions();
+        break;
+    default:
+        break;
+    }
+}
+
+void BibConv::processBibleConversions()
+{
+    qDebug()<<"processBibleConversions"<<bConType;
+    QString fn = "";
 
     switch (bConType) {
     case ZAFENIA_XML:
@@ -61,40 +102,95 @@ void BibConv::on_comboBox_activated(int index)
         }
         break;
     default:
+        ui->lineEdit->setText("Please Make A Selection");
+        break;
+    }
+}
+
+void BibConv::processSongConversions()
+{
+     qDebug()<<"processSongConversions"<<bConType;
+    QString fn = "";
+
+    switch (bConType) {
+    case EASISLIDES_XML:
+        fn = QFileDialog::getOpenFileName(this, "Open XML file", "./xml", "*.xml");
+        if(fn.isNull())
+        {
+            ui->lineEdit->setText("Error opening xml file. Please try again.");
+            return;
+        }
+        else
+        {
+            ui->lineEdit->setText(fn);
+        }
+        break;
+    case EASISLIDES_FILES:
+        fn = QFileDialog::getExistingDirectory(this,"EasiSlides song directory");
+        if(fn.isNull())
+        {
+            ui->lineEdit->setText("Error opening directory. Please try again.");
+            return;
+        }
+        else
+        {
+            ui->lineEdit->setText(fn);
+        }
+        break;
+    default:
+        ui->lineEdit->setText("Please Make A Selection");
         break;
     }
 }
 
 void BibConv::on_pushButtonStart_clicked()
 {
-    switch (bConType) {
-    case MY_SWORD:
-        importMySword();
+    switch (convType) {
+    case CT_BIBLE:
+        switch (bConType) {
+        case MY_SWORD:
+            importMySword();
+            break;
+        case BIBLE_QUOTE:
+            importBibleQuote();
+            break;
+        case BIBLE_DATABASE:
+            importBibleDatabase();
+            break;
+        case ZAFENIA_XML:
+            importXml(ui->lineEdit->text());
+            break;
+        case CORPUS_XML:
+            importCorpusXml(ui->lineEdit->text());
+            break;
+        case OSIS_XML:
+            importOsisXml(ui->lineEdit->text());
+            break;
+        case CSB_XML:
+            importEpubXML(ui->lineEdit->text());
+            break;
+        case SQLITE:
+            importSQlite(ui->lineEdit->text());
+            break;
+        default:
+            break;
+        }
         break;
-    case BIBLE_QUOTE:
-        importBibleQuote();
-        break;
-    case BIBLE_DATABASE:
-        importBibleDatabase();
-        break;
-    case ZAFENIA_XML:
-        importXml(ui->lineEdit->text());
-        break;
-    case CORPUS_XML:
-        importCorpusXml(ui->lineEdit->text());
-        break;
-    case OSIS_XML:
-        importOsisXml(ui->lineEdit->text());
-        break;
-    case CSB_XML:
-        importEpubXML(ui->lineEdit->text());
-        break;
-    case SQLITE:
-        importSQlite(ui->lineEdit->text());
-        break;
+    case CT_SONG:
+        switch (bConType) {
+        case EASISLIDES_XML:
+            processEasislidesXml(ui->lineEdit->text());
+            break;
+        case EASISLIDES_FILES:
+            processEasislidesFiles(ui->lineEdit->text());
+            break;
+        default:
+            break;
+        }
     default:
         break;
     }
+
 
 }
 
@@ -1893,19 +1989,186 @@ void BibConv::toSingleLine(QString &sline)
     sline = sline.trimmed();
 }
 
+void BibConv::processEasislidesXml(QString fileName)
+{
+    QDomDocument domDoc;
+    QFile file (fileName);
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Can't open file: " << fileName;
+        ui->lineEdit->setText("Can't open file: " + fileName);
+        return;
+    }
+    QString err = "";
+    if(!domDoc.setContent(&file,false,&err))
+    {
+        ui->lineEdit->setText("Error XML DOM Document open:" + err);
+        file.close();
+        return;
+    }
+    file.close();
+
+    int sNum(0);
+
+    songBook.title = "Romanian Songbook";
+    songBook.info = "Contains both Romaninan and English songs.\n\n May have duplicate songs.";
+    ui->progressBar->setMaximum(9764);
+
+    QDomElement domElem = domDoc.documentElement();
+    QDomNode n = domElem.firstChild();
+
+    while (!n.isNull())
+    {
+        if("Item" == n.nodeName())
+        {
+            QDomNode ni = n.firstChild();
+            Song s;
+            ++sNum;
+            while(!ni.isNull())
+            {
+                if("Title1" == ni.nodeName())
+                {
+                    s.title = ni.toElement().text();
+                }
+                else if("SongNumber" == ni.nodeName())
+                {
+                    bool ok = false;
+                    int n(-1);
+                    n = ni.toElement().text().toInt(&ok);
+                    if(ok && n > 0)
+                    {
+                         s.number = n;
+                         qDebug()<<s.title<<s.number;
+                    }
+                    else
+                    {
+                         s.number = sNum;
+                    }
+                }
+                else if("Contents" == ni.nodeName())
+                {
+                    s.text = ni.toElement().text();
+                }
+
+                ni = ni.nextSibling();
+            }
+            processSongText(s);
+            songBook.addSong(s);
+            incrementProgressBar();
+        }
+        n = n.nextSibling();
+    }
+
+
+    ui->plainTextEdit->setPlainText(songBook.printSongbook());
+//    ui->progressBar->setValue(ui->progressBar->maximum());
+
+}
+
+void BibConv::processSongText(Song &song)
+{
+    QStringList songLines = song.text.split("\n");
+    QString newText = "";
+    bool hasStanzaTitle = false;
+    foreach (QString l, songLines)
+    {
+        if(l.startsWith("Verse") || l.startsWith("Chorus"))
+        {
+            hasStanzaTitle = true;
+            QStringList stl = l.split(" ");
+            if(stl.size()<2)
+            {
+                newText += l + "\n";
+                continue;
+            }
+            QStringList numl = stl.at(1).split(".");
+            if(numl.size()<2)
+            {
+                newText += l + "\n";
+                continue;
+            }
+            int i = numl.at(1).toInt();
+            if(i>1)
+            {
+                l = "&" + l;
+            }
+        }
+        else if(l.startsWith("CCLI") || l.startsWith("©"))
+        {
+            continue;
+        }
+        else if(l.startsWith("["))
+        {
+            hasStanzaTitle = true;
+            l = l.remove("[");
+            l = l.remove("]");
+            l = l.trimmed();
+            if("chorus"==l)
+            {
+                l = "Chorus";
+            }
+            else
+            {
+                l = "Verse " + l;
+            }
+        }
+        newText += l + "\n";
+    }
+
+    static int x = 0;
+    if(!hasStanzaTitle)
+    {
+        ++x;
+        qDebug()<<"No Stanza Titles:"<<song.number<<song.title;
+    }
+
+    song.text = newText.trimmed();
+}
+
+void BibConv::processEasislidesFiles(QString directory)
+{
+
+}
+
 void BibConv::on_pushButtonSave_clicked()
 {
-    QString file_path = QFileDialog::getSaveFileName(this,tr("Save exported Bible as:"),
-                                                     bibleTitle,
-                                                     tr("SoftProjector Bible file ") + "(*.spb)");
-    if(!file_path.isEmpty())
-    {
-        if(!file_path.endsWith(".spb"))
+    QString filePath = "";
+
+    switch (convType) {
+    case CT_BIBLE:
+        filePath = QFileDialog::getSaveFileName(this,tr("Save exported Bible as:"),
+                                                bibleTitle,
+                                                tr("SoftProjector Bible file ") + "(*.spb)");
+        exportBible(filePath);
+        break;
+    case CT_SONG:
+        filePath = QFileDialog::getSaveFileName(this,tr("Save exported Songbook as:"),
+                                                         songBook.title,
+                                                         tr("SoftProjector Songbook file ") + "(*.sps)");
+        if(!filePath.endsWith(".sps"))
         {
-            file_path = file_path + ".spb";
+            filePath += ".sps";
+        }
+
+        songBook.exportSongbook(filePath);
+    default:
+        break;
+    }
+
+
+}
+
+void BibConv::exportBible(QString path)
+{
+    if(!path.isEmpty())
+    {
+        if(!path.endsWith(".spb"))
+        {
+            path += ".spb";
         }
         QFile ofile;
-        ofile.setFileName(file_path);
+        ofile.setFileName(path);
         if (ofile.open(QIODevice::WriteOnly))
         {
             QTextStream out(&ofile);

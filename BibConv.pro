@@ -21,9 +21,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         bibconv.cpp \
-    bible.cpp
+    bible.cpp \
+    song.cpp
 
 HEADERS  += bibconv.h \
-    bible.h
+    bible.h \
+    song.h
 
 FORMS    += bibconv.ui
