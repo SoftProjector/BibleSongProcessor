@@ -9,7 +9,7 @@ BibConv::BibConv(QWidget *parent) :
     ui->setupUi(this);
     bibleTypes << "Select Bible Type" << "My Sword" << "Bible Quote" <<
                   "Bible Database" << "Zafenia XML" << "Corpus XML" <<
-                  "OSIS XML" << "CSB SML" << "SQLite";
+                  "OSIS XML" << "CSB SML" << "SQLite" << "Zulu Bible";
     songTypes << "Select Song Type" << "EasiSlides XML" << "EasySlides Files";
     bConType = 0;
     if(0 == ui->comboBoxConvType->currentIndex())
@@ -66,6 +66,7 @@ void BibConv::processBibleConversions()
     case ZAFENIA_XML:
     case CORPUS_XML:
     case OSIS_XML:
+    case ZULU_XML:
         fn = QFileDialog::getOpenFileName(this, "Open XML file", "./xml", "*.xml");
         if(fn.isNull())
         {
@@ -171,6 +172,9 @@ void BibConv::on_pushButtonStart_clicked()
             break;
         case SQLITE:
             importSQlite(ui->lineEdit->text());
+            break;
+        case ZULU_XML:
+            importZuluXml(ui->lineEdit->text());
             break;
         default:
             break;
@@ -968,6 +972,107 @@ void BibConv::importOsisXml(QString fileName)
 
     ui->plainTextEdit->setPlainText(printBible(bible));
     ui->progressBar->setValue(ui->progressBar->maximum());
+}
+
+void BibConv::importZuluXml(QString fileName)
+{
+    QDomDocument domDoc;
+    QFile file (fileName);
+
+    QString info = "Imported from XML https://github.com/godlytalias/Bible-Database/@%--------------------------@%";
+    Bible bible;
+    bible.copyright = info + bible.copyright;
+
+
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Can't open file: " << fileName;
+        ui->lineEdit->setText("Can't open file: " + fileName);
+        return;
+    }
+
+
+    if(!domDoc.setContent(&file,false))
+    {
+        ui->lineEdit->setText("Error XML DOM Document open");
+        file.close();
+        return;
+    }
+    file.close();
+
+    int ct(0);
+    ui->progressBar->setMaximum(40000);
+
+    QDomElement domElem = domDoc.documentElement();
+    bible.name = domElem.attribute("name").simplified();
+    QDomNode nb = domElem.firstChild();
+
+    QStringList bookNames;
+    bookNames << "Genesise" << "Eksodusi" << "Levitikusi" << "Numeri" << "Duteronomi" <<
+                 "Joshuwa" << "AbAhluleli" << "Ruthe" << "1 Samuweli" << "2 Samuweli" <<
+                 "1 AmaKhosi" << "2 AmaKhosi" << "1 IziKronike" << "2 IziKronike" << "Ezra" <<
+                 "Nehemiya" << "Esteri" << "Jobe" << "AmaHubo" << "IzAga" << "UmShumayeli" <<
+                 "IsiHlabelelo SeziHlabelelo" << "Isaya" << "Jeremiya" << "IsiLilo" <<
+                 "Hezekeli" << "Daniyeli" << "Hoseya" << "Joweli" << "Amose" << "Obadiya" <<
+                 "Jona" << "Mika" << "Nahume" << "Habakuki" << "Zefaniya" << "Hagayi" <<
+                 "Zakariya" << "Malaki" << "Mathewu" << "Marku" << "Luka" << "Johane" << "IzEnzo" <<
+                 "AmaRoma" << "1 Korinte" << "2 Korinte" << "Galathiya" << "Efesu" << "Filipi" <<
+                 "Kolose" << "1 Thesalonika" << "2 Thesalonika" << "1 Thimothewu" << "2 Thimothewu" <<
+                 "KuThithu" << "KuFilemoni" << "KumaHeberu" << "EkaJakobe" << "1 Petru" << "2 Petru" <<
+                 "1 Johane" << "2 Johane" << "3 Johane" << "EkaJuda" << "IsAmbulo";
+
+    while(!nb.isNull())
+    {
+        if("Book" == nb.nodeName())
+        {
+            Book book;
+            int id = nb.toElement().attribute("id").toInt();
+            book.name = bookNames.at(id);
+            book.bookId = id + 1;
+
+
+            QDomNode nc = nb.firstChild();
+
+            while (!nc.isNull())
+            {
+                if("Chapter" == nc.nodeName())
+                {
+                    Chapter chap;
+                    chap.num = nc.toElement().attribute("id").toInt();
+                    QDomNode nv = nc.firstChild();
+
+                    while (!nv.isNull())
+                    {
+                        if("Verse" == nv.nodeName())
+                        {
+                            Verse v;
+                            v.num = nv.toElement().attribute("id").toInt();
+                            v.text = nv.toElement().text().simplified();
+                            chap.addVerse(v);
+                        }
+
+                        ++ct;
+                        ui->progressBar->setValue(ct);
+                        nv = nv.nextSibling();
+                    }
+
+                    ++book.chapterCount;
+                    book.addChapter(chap);
+                }
+                ++ct;
+                ui->progressBar->setValue(ct);
+                nc = nc.nextSibling();
+            }
+
+            bible.addBook(book);
+        }
+        ++ct;
+        ui->progressBar->setValue(ct);
+        nb = nb.nextSibling();
+    }
+
+    ui->plainTextEdit->setPlainText(printBible(bible));
+//    ui->progressBar->setValue(ui->progressBar->maximum());
 }
 
 void BibConv::importCorpusXml(QString fileName)

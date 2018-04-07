@@ -29,7 +29,8 @@ enum BibleConvType
     CORPUS_XML,
     OSIS_XML,
     CSB_XML,
-    SQLITE
+    SQLITE,
+    ZULU_XML
 };
 
 enum SongConvType
@@ -64,6 +65,7 @@ private slots:
     QString processBookRBO2011(QString dirPath, Book book, QString cDelim, QString vDelim);
     void toSingleLine(QString &sline);
     void importXml(QString fileName);
+    void importZuluXml(QString fileName);
     void importOsisXml(QString fileName);
     void importCorpusXml(QString fileName);
     void importEpubXML(QString directory);
