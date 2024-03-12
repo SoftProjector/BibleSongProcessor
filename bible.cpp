@@ -34,8 +34,8 @@ Book::Book()
 
 void Book::setBookId(QString fp)
 {
-
-    fp = fp.remove(QRegExp("\\D"));
+    static QRegularExpression re("\\D");
+    fp = fp.remove(re);
     bookId = fp.toInt();
 }
 

@@ -3,7 +3,7 @@
 
 #include <QString>
 #include <QList>
-#include <QRegExp>
+#include <QRegularExpression>
 
 class Verse
 {

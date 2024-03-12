@@ -370,18 +370,13 @@ QString BibConv::processBookNRT(QString dirPath, Book book, QString cDelim, QStr
         return "FAILED TO OPEN: " + book.filePath;
 
     QString line, oline, cline, chapter,cd,vd,v;
-    QRegExp rx;
+    static QRegularExpression rx;
     bool isVerse = false;
     //pre delimeters
     rx.setPattern("<(.*)>");
-    int rxi = rx.indexIn(cDelim);
-    if(rxi >=0)
-        cd = rx.cap(1);
-    rxi = rx.indexIn(vDelim);
-    if(rxi >=0)
-        vd = rx.cap(1);
+    cd = rx.match(cDelim).captured(1);
+    vd = rx.match(vDelim).captured(1);
 
-    rx.setMinimal(true);
     int ch,vr;
     while(!file.atEnd())
     {
@@ -395,7 +390,8 @@ QString BibConv::processBookNRT(QString dirPath, Book book, QString cDelim, QStr
             //            rxi = rx.indexIn(line);
             //            if(rxi >=0)
             //                ch = rx.cap(1).toInt();
-            ch = line.remove(QRegExp("\\D")).toInt();
+            rx.setPattern("\\D");
+            ch = line.remove(rx).toInt();
 
         }
         else if(line.startsWith(vDelim.trimmed()))
@@ -404,9 +400,7 @@ QString BibConv::processBookNRT(QString dirPath, Book book, QString cDelim, QStr
             oline = line;
 
             rx.setPattern("<" + vd +">(\\d*)\\s");
-            rxi = rx.indexIn(line);
-            if(rxi >=0)
-                vr = rx.cap(1).toInt();
+            vr = rx.match(line).captured(1).toInt();
 
             v = line.remove(rx);
             rx.setPattern("<b.*b>");
@@ -458,18 +452,13 @@ QString BibConv::processBookRBO2011(QString dirPath, Book book, QString cDelim, 
         return "FAILED TO OPEN: " + book.filePath;
 
     QString line, oline, cline, chapter,cd,vd,v;
-    QRegExp rx;
+    static QRegularExpression rx;
     bool isVerse = false;
     //pre delimeters
     rx.setPattern("<(.*)>");
-    int rxi = rx.indexIn(cDelim);
-    if(rxi >=0)
-        cd = rx.cap(1);
-    rxi = rx.indexIn(vDelim);
-    if(rxi >=0)
-        vd = rx.cap(1);
+    cd = rx.match(cDelim).captured(1);
+    vd = rx.match(vDelim).captured(1);
 
-    rx.setMinimal(true);
     int ch,vr;
     while(!file.atEnd())
     {
@@ -480,9 +469,7 @@ QString BibConv::processBookRBO2011(QString dirPath, Book book, QString cDelim, 
         {
             isVerse = false;
             rx.setPattern("<" + cd +">(.*)</" + cd + ">");
-            rxi = rx.indexIn(line);
-            if(rxi >=0)
-                ch = rx.cap(1).toInt();
+            ch = rx.match(line).captured(1).toInt();
 
         }
         else if(line.startsWith(vDelim.trimmed()))
@@ -491,9 +478,7 @@ QString BibConv::processBookRBO2011(QString dirPath, Book book, QString cDelim, 
             oline = line;
 
             rx.setPattern("<" + vd +">(.*)</" + vd + ">");
-            rxi = rx.indexIn(line);
-            if(rxi >=0)
-                vr = rx.cap(1).toInt();
+            vr = rx.match(line).captured(1).toInt();
 
             v = line.remove(rx);
             rx.setPattern("<a.*a>");
@@ -514,9 +499,7 @@ QString BibConv::processBookRBO2011(QString dirPath, Book book, QString cDelim, 
                 chapter.remove(cline);
 
                 rx.setPattern("<" + vd +">(.*)</" + vd + ">");
-                rxi = rx.indexIn(line);
-                if(rxi >=0)
-                    vr = rx.cap(1).toInt();
+                vr = rx.match(line).captured(1).toInt();
 
                 v = line.remove(rx);
                 rx.setPattern("<a.*a>");
@@ -1939,15 +1922,9 @@ QString BibConv::printBible(Bible &bible)
 
 QString BibConv::processLineMySword(QString line, QString &book)
 {
-    QRegExp rx;
-    rx.setMinimal(true);
-    // rx.setPatternSyntax(QRegExp::RegExp2);
     QString rxs = ui->lineEdit->text();
-    rx.setPattern("(<TS2>(.*)\\s\\d<Ts>)");//    (<TS2>(.*)<Ts>)
-    int rxi = rx.indexIn(line);
-    if(rxi >=0)
-        book = rx.cap(2);
-
+    static QRegularExpression rx("(<TS2>(.*)\\s\\d<Ts>)");//    (<TS2>(.*)<Ts>)
+    book = rx.match(line).captured(2);
 
     QString vr,v ;
     rx.setPattern("<RF.*Rf>|<TS.*Ts>|<v1.*v1>");
@@ -1972,18 +1949,18 @@ QString BibConv::processLineMySword(QString line, QString &book)
     //        p += rx.matchedLength();
     //    }
 
-    p = 0;
-    rx.setPattern("((\\,)(\\S))"); // Do Comma
-    while ((p = rx.indexIn(vr, p)) != -1)
-    {
-        QString a,b,c;
-        a = rx.cap(1);
-        b = rx.cap(2);
-        c = rx.cap(3);
-        vr = vr.replace(a,b + " " + c);
-        //            v += a;
-        p += rx.matchedLength();
-    }
+    // p = 0;
+    // rx.setPattern("((\\,)(\\S))"); // Do Comma
+    // while ((p = rx.indexIn(vr, p)) != -1)
+    // {
+    //     QString a,b,c;
+    //     a = rx.cap(1);
+    //     b = rx.cap(2);
+    //     c = rx.cap(3);
+    //     vr = vr.replace(a,b + " " + c);
+    //     //            v += a;
+    //     p += rx.matchedLength();
+    // }
 
     //        p = 0;
     //        rx.setPattern("((!)(\\S))"); // Do Exlamation
@@ -2277,7 +2254,7 @@ void BibConv::exportBible(QString path)
         if (ofile.open(QIODevice::WriteOnly))
         {
             QTextStream out(&ofile);
-            out.setCodec("UTF8");
+            out.setEncoding(QStringConverter::Utf8);
             out << ui->plainTextEdit->toPlainText();
         }
         ofile.close();
