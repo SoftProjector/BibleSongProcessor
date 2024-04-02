@@ -9,7 +9,7 @@ BibConv::BibConv(QWidget *parent) :
     ui->setupUi(this);
     bibleTypes << "Select Bible Type" << "My Sword" << "Bible Quote" <<
                   "Bible Database" << "Zafenia XML" << "Corpus XML" <<
-                  "OSIS XML" << "CSB SML" << "SQLite" << "Zulu Bible";
+        "OSIS XML" << "CSB SML" << "SQLite" << "Zulu Bible"<<"MyBible";
     songTypes << "Select Song Type" << "EasiSlides XML" << "EasySlides Files";
     bConType = 0;
     if(0 == ui->comboBoxConvType->currentIndex())
@@ -17,6 +17,94 @@ BibConv::BibConv(QWidget *parent) :
         ui->comboBoxBSConvType->clear();
         ui->comboBoxBSConvType->addItems(bibleTypes);
     }
+    _myBibleBookNumbers.insert(10,1);_myBibleBookNumbers.insert(10,1);
+    _myBibleBookNumbers.insert(20,2);
+    _myBibleBookNumbers.insert(30,3);
+    _myBibleBookNumbers.insert(40,4);
+    _myBibleBookNumbers.insert(50,5);
+    _myBibleBookNumbers.insert(60,6);
+    _myBibleBookNumbers.insert(70,7);
+    _myBibleBookNumbers.insert(80,8);
+    _myBibleBookNumbers.insert(90,9);
+    _myBibleBookNumbers.insert(100,10);
+    _myBibleBookNumbers.insert(110,11);
+    _myBibleBookNumbers.insert(120,12);
+    _myBibleBookNumbers.insert(180,68);
+    _myBibleBookNumbers.insert(130,13);
+    _myBibleBookNumbers.insert(140,14);
+    _myBibleBookNumbers.insert(145,83);
+    _myBibleBookNumbers.insert(150,15);
+    _myBibleBookNumbers.insert(160,16);
+    _myBibleBookNumbers.insert(165,82);
+    _myBibleBookNumbers.insert(170,67);
+    _myBibleBookNumbers.insert(190,17);
+    _myBibleBookNumbers.insert(192,69);
+    _myBibleBookNumbers.insert(220,18);
+    _myBibleBookNumbers.insert(230,19);
+    _myBibleBookNumbers.insert(240,20);
+    _myBibleBookNumbers.insert(250,21);
+    _myBibleBookNumbers.insert(260,22);
+    _myBibleBookNumbers.insert(270,70);
+    _myBibleBookNumbers.insert(280,71);
+    _myBibleBookNumbers.insert(290,23);
+    _myBibleBookNumbers.insert(300,24);
+    _myBibleBookNumbers.insert(305,74);
+    _myBibleBookNumbers.insert(310,25);
+    _myBibleBookNumbers.insert(315,73);
+    _myBibleBookNumbers.insert(320,72);
+    _myBibleBookNumbers.insert(323,84);
+    _myBibleBookNumbers.insert(325,75);
+    _myBibleBookNumbers.insert(330,26);
+    _myBibleBookNumbers.insert(340,27);
+    _myBibleBookNumbers.insert(345,76);
+    _myBibleBookNumbers.insert(350,28);
+    _myBibleBookNumbers.insert(360,29);
+    _myBibleBookNumbers.insert(370,30);
+    _myBibleBookNumbers.insert(380,31);
+    _myBibleBookNumbers.insert(390,32);
+    _myBibleBookNumbers.insert(400,33);
+    _myBibleBookNumbers.insert(410,34);
+    _myBibleBookNumbers.insert(420,35);
+    _myBibleBookNumbers.insert(430,36);
+    _myBibleBookNumbers.insert(440,37);
+    _myBibleBookNumbers.insert(450,38);
+    _myBibleBookNumbers.insert(460,39);
+    _myBibleBookNumbers.insert(462,77);
+    _myBibleBookNumbers.insert(464,78);
+    _myBibleBookNumbers.insert(466,79);
+    _myBibleBookNumbers.insert(467,80);
+    _myBibleBookNumbers.insert(468,82);
+    _myBibleBookNumbers.insert(470,40);
+    _myBibleBookNumbers.insert(480,41);
+    _myBibleBookNumbers.insert(490,42);
+    _myBibleBookNumbers.insert(500,43);
+    _myBibleBookNumbers.insert(510,44);
+    _myBibleBookNumbers.insert(660,59);
+    _myBibleBookNumbers.insert(670,60);
+    _myBibleBookNumbers.insert(680,61);
+    _myBibleBookNumbers.insert(690,62);
+    _myBibleBookNumbers.insert(700,63);
+    _myBibleBookNumbers.insert(710,64);
+    _myBibleBookNumbers.insert(720,65);
+    _myBibleBookNumbers.insert(520,45);
+    _myBibleBookNumbers.insert(530,46);
+    _myBibleBookNumbers.insert(540,47);
+    _myBibleBookNumbers.insert(550,48);
+    _myBibleBookNumbers.insert(560,49);
+    _myBibleBookNumbers.insert(570,50);
+    _myBibleBookNumbers.insert(580,51);
+    _myBibleBookNumbers.insert(590,52);
+    _myBibleBookNumbers.insert(600,53);
+    _myBibleBookNumbers.insert(610,54);
+    _myBibleBookNumbers.insert(620,55);
+    _myBibleBookNumbers.insert(630,56);
+    _myBibleBookNumbers.insert(640,57);
+    _myBibleBookNumbers.insert(650,58);
+    _myBibleBookNumbers.insert(730,66);
+    _myBibleBookNumbers.insert(780,90);
+
+
+
 }
 
 BibConv::~BibConv()
@@ -91,6 +179,7 @@ void BibConv::processBibleConversions()
         }
         break;
     case SQLITE:
+    case MYBIBLE:
         fn = QFileDialog::getOpenFileName(this, "Open SQLite database", "", "*");
         if(fn.isNull())
         {
@@ -176,6 +265,8 @@ void BibConv::on_pushButtonStart_clicked()
         case ZULU_XML:
             importZuluXml(ui->lineEdit->text());
             break;
+        case MYBIBLE:
+            importMyBible(ui->lineEdit->text());
         default:
             break;
         }
@@ -594,7 +685,7 @@ void BibConv::importSQlite(QString fileName)
         return;
     }
 
-//    int book_num(0);
+    //    int book_num(0);
 
     while (sq.next())
     {
@@ -613,7 +704,7 @@ void BibConv::importSQlite(QString fileName)
         }
         book.name = book.name.trimmed();
 
-//        book.chapterCount = sq.value(2).toInt();
+        //        book.chapterCount = sq.value(2).toInt();
         bible.addBook(book);
         ui->progressBar->setValue(++i);
     }
@@ -623,7 +714,7 @@ void BibConv::importSQlite(QString fileName)
     for(int ib = 0;ib < bible.books.count(); ++ib)
     {
         Book bk = bible.books.at(ib);
-//        book_num = bk.chapterCount;
+        //        book_num = bk.chapterCount;
         int chNum = 0, chNumOld(0);
         Chapter ch;
         ch.num = 0;
@@ -660,6 +751,143 @@ void BibConv::importSQlite(QString fileName)
         bible.books.replace(ib,bk);
     }
     ui->plainTextEdit->setPlainText(printBible(bible));
+}
+
+void BibConv::importMyBible(QString fileName)
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE","myBible");
+    db.setDatabaseName(fileName);
+    if(!db.open())
+    {
+        QMessageBox mb(this);
+        mb.setText("An error has ocured when database file.\n"
+                   "Please try again.");
+        mb.setIcon(QMessageBox::Critical);
+        mb.setStandardButtons(QMessageBox::Ok);
+        mb.exec();
+        return;
+    }
+    QSqlQuery sq(db);
+
+    int i(0);
+    ui->progressBar->setMaximum(31102);
+    Bible bible;
+    // Get Bible Info
+    bool ok = sq.exec("SELECT name, value FROM info");
+
+    if(!ok)
+    {
+        qDebug()<<sq.lastQuery()<<sq.lastError();
+        return;
+    }
+
+    while(sq.next())
+    {
+        QString n = sq.value(0).toString();
+        QString v = sq.value(1).toString();
+        if (n == "description")
+        {
+            bible.name = v;
+        }
+        else if (n == "detailed_info")
+        {
+            QString info = "Imported MyBible@%--------------------------@%";
+            QString copyright = v.replace("<br/>","");
+            copyright = copyright.replace("\n","@%");
+            bible.copyright = info + copyright + bible.copyright;
+        }
+    }
+
+    sq.clear();
+    // Get Book Info
+    ok = sq.exec("SELECT book_number, short_name, long_name, is_present FROM books_all");
+
+    if(!ok)
+    {
+        qDebug()<<sq.lastQuery()<<sq.lastError();
+        return;
+    }
+
+    //    int book_num(0);
+
+    while (sq.next())
+    {
+
+        if (sq.value(3).toBool())
+        {
+            Book book;
+            book.bookId = sq.value(0).toInt();
+
+            //book. = sq.value(1).toString();
+            book.name = sq.value(2).toString().toLower();
+            QStringList words = book.name.split(" ");
+            book.name.clear();
+            foreach (QString w, words)
+            {
+                QChar c = w.at(0);
+                c = c.toUpper();
+                w.replace(0,1,c);
+                book.name += " " + w;
+            }
+            book.name = book.name.trimmed();
+            //        book.chapterCount = sq.value(2).toInt();
+            bible.addBook(book);
+            ui->plainTextEdit->appendPlainText(book.name);
+            ui->progressBar->setValue(++i);
+        }
+    }
+    sq.clear();
+
+    for(int ib = 0;ib < bible.books.count(); ++ib)
+    {
+        Book bk = bible.books.at(ib);
+        //        book_num = bk.chapterCount;
+        int chNum = 0, chNumOld(0);
+        Chapter ch;
+        ch.num = 0;
+        ok = sq.exec(QString("SELECT chapter, verse, text FROM verses WHERE book_number = \"%1\"").arg(bk.bookId));
+        if(!ok)
+        {
+            qDebug()<<sq.lastQuery()<<sq.lastError();
+        }
+        while (sq.next())
+        {
+            Verse v;
+            chNum = sq.value(0).toInt();
+            if(0 != chNumOld && chNum != chNumOld)
+            {
+                ch.num = chNumOld;
+                bk.addChapter(ch);
+                ch.clear();
+            }
+            v.num = sq.value(1).toInt();
+            v.text = sq.value(2).toString();
+            ch.addVerse(v);
+            ui->progressBar->setValue(++i);
+            chNumOld = chNum;
+        }
+        ch.num = chNum;
+        bk.addChapter(ch);
+        bk.chapterCount = chNum;
+        sq.clear();
+
+        // Update book id
+        bk.bookId = getBookNubFromMyBible(bk.bookId);
+
+        bible.books.replace(ib,bk);
+    }
+    ui->plainTextEdit->setPlainText(printBible(bible));
+}
+
+int BibConv::getBookNubFromMyBible(int myBibleBookNum){
+
+    if (_myBibleBookNumbers.contains(myBibleBookNum)) {
+        qDebug() << "BookIds "<<myBibleBookNum << " --> " << _myBibleBookNumbers[myBibleBookNum];
+        return _myBibleBookNumbers[myBibleBookNum];
+    }
+
+    qDebug()<<"Book Not Found: "<<myBibleBookNum;
+    return 0;
 }
 
 void BibConv::importXml(QString fileName)

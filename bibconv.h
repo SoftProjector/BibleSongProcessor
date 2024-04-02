@@ -30,7 +30,8 @@ enum BibleConvType
     OSIS_XML,
     CSB_XML,
     SQLITE,
-    ZULU_XML
+    ZULU_XML,
+    MYBIBLE
 };
 
 enum SongConvType
@@ -53,6 +54,8 @@ private slots:
     QString processLineMySword(QString line, QString &book);
     void importMySword();
     void importSQlite(QString fileName);
+    void importMyBible(QString fileName);
+    int getBookNubFromMyBible(int myBibleBookNum);
     void importBibleQuote();
     void importBibleDatabase();
     QString get3(int i);
@@ -94,6 +97,7 @@ private:
     QString bibleTitle;
     QStringList bibleTypes;
     QStringList songTypes;
+    QMap<int,int> _myBibleBookNumbers;
 
     Songbook songBook;
 };

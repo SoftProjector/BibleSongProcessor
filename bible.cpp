@@ -55,12 +55,13 @@ void Book::clear()
 
 Bible::Bible()
 {
-    copyright =  "Bible Copyright and Permissions Information @%@%The Holy Bible@%Copyright (c) Eternity, God@%All rights reserved.@%"
+    copyright =  "@%--------------------------@%"
+                "Bible Copyright and Permissions Information @%@%The Holy Bible@%Copyright (c) Eternity, God@%All rights reserved.@%"
                 "Copyright Options@%@%"
                 "Option A: If you think the bible is:@%"
                 "    1. the work of men, translators, publishers and nothing to do with Holy Spirit OR@%"
                 "    2. acknowledge Holy Spirit being the original author but the original author is dead and 70+ years had passed.@%"
-                "    - Then you must abide by what the translators, publishers etc say about their work.@%@%"
+                "    - Then you must abide by what the translators, publishers, etc say about their work.@%@%"
                 "Option B: If you think the bible is:@%"
                 "    1.the work of Holy Spirit through His people OR@%"
                 "    2.acknowledge Holy Spirit being the original author and He is still living OR@%"
